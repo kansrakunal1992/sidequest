@@ -1,0 +1,27 @@
+{
+  "name": "@sidequest/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "esbuild src/server.ts src/worker.ts --bundle --platform=node --format=cjs --target=node22 --outdir=dist --out-extension:.js=.cjs --external:pg-native",
+    "start": "node dist/server.cjs",
+    "start:worker": "node dist/worker.cjs"
+  },
+  "dependencies": {
+    "@sidequest/shared": "workspace:*",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.8.0",
+    "jsdom": "^26.0.0"
+  }
+}

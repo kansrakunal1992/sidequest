@@ -1,0 +1,12 @@
+node_modules
+.env
+.env.*
+!.env.example
+dist
+.expo
+android/
+*.keystore
+*.jks
+.expo
+expo-env.d.ts
+apps/mobile/.env
