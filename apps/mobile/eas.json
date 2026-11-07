@@ -22,9 +22,9 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "PASTE_YOUR_SUPABASE_URL",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "PASTE_YOUR_SUPABASE_ANON_KEY",
-        "EXPO_PUBLIC_API_URL": "PASTE_YOUR_API_URL"
+        "EXPO_PUBLIC_SUPABASE_URL": "https://rwlwcrzwuqtqcbeeqwuf.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bHdjcnp3dXF0cWNiZWVxd3VmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQwNjY0NzAsImV4cCI6MjEwOTY0MjQ3MH0.JibAXe-wuT4bpYRIimX60V4fQ-7_FxwoKAMj22J6Irg",
+        "EXPO_PUBLIC_API_URL": "https://sidequestapi-production-2342.up.railway.app"
       }
     },
     "production": {
