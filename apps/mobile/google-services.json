@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "612995006898",
+    "project_id": "waypoint-a8822",
+    "storage_bucket": "waypoint-a8822.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:612995006898:android:5010219efe44be93a724ab",
+        "android_client_info": {
+          "package_name": "app.sidequest.android"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAVKjBSyjK7MUMlAx4FgDwuLC0SgUXjQkw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
