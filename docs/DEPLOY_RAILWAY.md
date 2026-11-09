@@ -10,14 +10,14 @@ Two Railway services from this one repository: **api** (HTTP) and **worker** (sc
 
 ## 2. Railway: api service
 1. New Project > Deploy from GitHub repo (push this repository first).
-2. Service settings: **Root directory** `/`, **Config as code path** `/railway.json` (builds `apps/api/Dockerfile`).
+2. Service settings: **Root directory** `/`, **Config as code path** `/apps/api/railway.json` (builds `apps/api/Dockerfile`).
 3. Variables: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (needed to show other people's photos; server only), optional `SUPABASE_JWT_SECRET`, `FCM_SERVICE_ACCOUNT_JSON`, `WEBHOOK_SECRET` (for message notifications), `PHOTO_MODERATION` (`required` by default; `off` only for development). Railway sets `PORT` itself.
 4. Networking > Generate domain. Check `https://<domain>/healthz` returns `{"ok":true}`.
 5. Put that domain in the mobile app as `EXPO_PUBLIC_API_URL`.
 
 ## 3. Railway: worker service
 1. In the same project add a second service from the same repo.
-2. **Config as code path** `/railway.worker.json` (same image, start command `node dist/worker.cjs`).
+2. **Config as code path** `/apps/api/railway.worker.json` (same image, start command `node dist/worker.cjs`).
 3. Same variables as the API. **`SUPABASE_SERVICE_ROLE_KEY` is required here** (the worker refuses to start without it): it writes data exports and deletes accounts through the Supabase Admin API. No public domain needed.
 4. Run **exactly one** replica. Reminders and notifications are de-duplicated by the database, but one worker keeps the logs and load simple.
 

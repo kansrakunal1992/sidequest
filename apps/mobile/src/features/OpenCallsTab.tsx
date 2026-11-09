@@ -9,10 +9,12 @@ import { expressInterest, listOpenCalls } from '@/lib/plans';
 import type { Scope } from '@/lib/plans';
 import { useModes } from '@/lib/modes';
 import { OpenCallCard } from './PlanCards';
+import { useTheme } from '@/lib/theme';
 
 const SCOPES: { id: Scope; label: string }[] = [{ id: 'browse', label: 'Browse' }, { id: 'mine', label: 'Hosting' }, { id: 'joined', label: 'Joined' }];
 
 export function OpenCallsTab() {
+  const th = useTheme();
   const { current } = useModes();
   const router = useRouter();
   const [scope, setScope] = useState<Scope>('browse');
@@ -42,7 +44,7 @@ export function OpenCallsTab() {
       <Button kind="secondary" label="Create an Open Call" onPress={() => router.push({ pathname: '/open-call/new', params: { mode: current } } as never)} />
       <Spacer h={12} />
       {error ? <ErrorText>{error}</ErrorText> : null}
-      {loading ? <ActivityIndicator color={colors.violet} style={{ marginTop: 30 }} />
+      {loading ? <ActivityIndicator color={th.highlight} style={{ marginTop: 30 }} />
         : visible.length === 0 ? <EmptyState title={scope === 'browse' ? 'No Open Calls right now' : scope === 'mine' ? 'You are not hosting anything' : 'Nothing joined yet'}
             body={scope === 'browse' ? 'Be the first: post what you are up for and see who is in.' : 'Post an Open Call, or ask to join someone else\u2019s plan.'} />
         : visible.map((c) => <OpenCallCard key={c.id} c={c} onOpen={() => open(c)} onPass={() => setHidden(new Set(hidden).add(c.id))} onInterested={scope === 'browse' && c.myStatus === null ? () => void interested(c) : undefined} />)}

@@ -14,8 +14,10 @@ import { useModes } from '@/lib/modes';
 import { cancelOpenCall, completeOpenCall, decideParticipant, expressInterest, findOpenCall, openCallPeople, reportContent, updateOpenCall, withdrawInterest } from '@/lib/plans';
 import type { PlanPerson } from '@/lib/plans';
 import { useSession } from '@/lib/session';
+import { useTheme } from '@/lib/theme';
 
 export default function OpenCallDetail() {
+  const th = useTheme();
   const { id, mode: modeParam } = useLocalSearchParams<{ id: string; mode?: string }>();
   const { current } = useModes(); const { session } = useSession(); const router = useRouter();
   const me = session?.user.id ?? ''; const mode = ((modeParam as ModeId | undefined) ?? current) as ModeId | null;
@@ -37,12 +39,12 @@ export default function OpenCallDetail() {
   async function run(fn: () => Promise<unknown>) { setBusy(true); setError(null); try { await fn(); await load(); } catch (e) { setError(planErrorMessage((e as { code?: string }).code)); await load(); } finally { setBusy(false); } }
   const ask = (t: string, m: string, ok: string, fn: () => void) => Alert.alert(t, m, [{ text: 'Not now', style: 'cancel' }, { text: ok, onPress: fn }]);
 
-  if (!c) return <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', padding: spacing.xl }}>{error ? <><AppText style={{ textAlign: 'center' }}>{error}</AppText><Spacer /><Button kind="secondary" label="Go back" onPress={() => router.back()} /></> : <ActivityIndicator color={colors.violet} size="large" />}</SafeAreaView>;
+  if (!c) return <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', padding: spacing.xl }}>{error ? <><AppText style={{ textAlign: 'center' }}>{error}</AppText><Spacer /><Button kind="secondary" label="Go back" onPress={() => router.back()} /></> : <ActivityIndicator color={th.highlight} size="large" />}</SafeAreaView>;
   const badge = callBadge(c); const open = c.status === 'open' || c.status === 'full'; const started = c.startsAt.getTime() <= Date.now();
   const requests = people.filter((p) => p.status === 'interested' || p.status === 'waitlisted'); const going = people.filter((p) => p.status === 'accepted');
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScrollView contentContainerStyle={{ padding: spacing.xl }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} tintColor={colors.violet} />}>
+      <ScrollView contentContainerStyle={{ padding: spacing.xl }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} tintColor={th.highlight} />}>
         <Row style={{ marginBottom: spacing.md }}>
           <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Back" hitSlop={12}><Ionicons name="chevron-back" size={26} color={colors.text} /></Pressable>
           <AppText variant="headline" accessibilityRole="header" style={{ flex: 1 }}>Open Call</AppText>
@@ -57,7 +59,7 @@ export default function OpenCallDetail() {
           <>
             <Card>
               <AppText variant="title">{c.title}</AppText>
-              {badge ? <Text style={{ color: badge.tone === 'good' ? colors.cyan : badge.tone === 'wait' ? colors.violet : colors.textMuted, fontWeight: '700', marginTop: 4 }}>{badge.label}</Text> : null}
+              {badge ? <Text style={{ color: badge.tone === 'good' ? colors.cyan : badge.tone === 'wait' ? th.highlight : colors.textMuted, fontWeight: '700', marginTop: 4 }}>{badge.label}</Text> : null}
               <Spacer h={10} />
               <AppText>{formatWhen(c.startsAt)}</AppText>
               <AppText muted variant="caption">{c.areaLabel}{c.venue ? ` · ${c.venue}` : ''}</AppText>

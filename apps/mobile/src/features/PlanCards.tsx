@@ -6,6 +6,7 @@ import { activityBadge, callBadge, goingLabel, meetStyleLabel, slotsLeft } from 
 import type { ActivityItem, OpenCallItem, Tone } from '@/core/plans';
 import { colors, radius, spacing } from '@/design/theme';
 import { Button, Row } from '@/design/ui';
+import { useTheme } from '@/lib/theme';
 
 const tone = (t: Tone) => (t === 'good' ? colors.cyan : t === 'wait' ? colors.violet : colors.textMuted);
 const Tag = ({ label }: { label: string }) => <View style={st.tag}><Text style={st.tagText}>{label}</Text></View>;
@@ -31,11 +32,12 @@ export function OpenCallCard({ c, onOpen, onInterested, onPass }: { c: OpenCallI
 }
 
 export function ActivityCard({ a, onOpen }: { a: ActivityItem; onOpen: () => void }) {
+  const th = useTheme();
   const badge = activityBadge(a); const cat = ACTIVITY_CATEGORIES.find((c) => c.id === a.category);
   return (
     <Pressable onPress={onOpen} style={st.card} accessibilityRole="button" accessibilityLabel={`${a.title}. ${formatWhen(a.startsAt)}. ${a.areaLabel}. ${goingLabel(a)}`}>
       <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <View style={{ flex: 1 }}><Row><Ionicons name={(cat?.icon ?? 'sparkles') as never} size={16} color={colors.violet} /><Text style={st.cat}>{cat?.label ?? a.category}</Text></Row><Text style={st.title} numberOfLines={2}>{a.title}</Text></View>
+        <View style={{ flex: 1 }}><Row><Ionicons name={(cat?.icon ?? 'sparkles') as never} size={16} color={th.highlight} /><Text style={st.cat}>{cat?.label ?? a.category}</Text></Row><Text style={st.title} numberOfLines={2}>{a.title}</Text></View>
         {badge ? <Text style={[st.badge, { color: tone(badge.tone) }]}>{badge.label}</Text> : null}
       </Row>
       <View style={st.meta}><Ionicons name="time" size={14} color={colors.textMuted} /><Text style={st.sub}>{formatWhen(a.startsAt)}</Text></View>

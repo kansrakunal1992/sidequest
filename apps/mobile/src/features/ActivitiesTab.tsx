@@ -8,11 +8,13 @@ import { Button, Chip, EmptyState, ErrorText, Row, Spacer } from '@/design/ui';
 import { listActivities } from '@/lib/plans';
 import type { Scope } from '@/lib/plans';
 import { ActivityCard } from './PlanCards';
+import { useTheme } from '@/lib/theme';
 
 const SCOPES: { id: Scope; label: string }[] = [{ id: 'browse', label: 'Browse' }, { id: 'joined', label: 'Going' }, { id: 'mine', label: 'Hosting' }];
 
 /** Find something to do first, then the people who want to do it. No romantic match required. */
 export function ActivitiesTab() {
+  const th = useTheme();
   const router = useRouter();
   const [scope, setScope] = useState<Scope>('browse');
   const [category, setCategory] = useState<string | null>(null);
@@ -33,7 +35,7 @@ export function ActivitiesTab() {
       <Button kind="secondary" label="Host an activity" onPress={() => router.push('/activity/new' as never)} />
       <Spacer h={12} />
       {error ? <ErrorText>{error}</ErrorText> : null}
-      {loading ? <ActivityIndicator color={colors.violet} style={{ marginTop: 30 }} />
+      {loading ? <ActivityIndicator color={th.highlight} style={{ marginTop: 30 }} />
         : items.length === 0 ? <EmptyState title="Nothing here yet" body="Host a bowling night, a walking group or a board-game evening and see who joins." />
         : items.map((a) => <ActivityCard key={a.id} a={a} onOpen={() => router.push({ pathname: '/activity/[id]', params: { id: a.id } } as never)} />)}
     </View>

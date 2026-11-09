@@ -33,7 +33,7 @@ const dropped = new Set([...strip.matchAll(/drop policy (\w+) on/g)].map((m) => 
 const policies = [...strip.matchAll(/create policy (\w+) on ([\w.]+)\s+for (\w+) to (\w+)([\s\S]*?);/g)].filter((m) => !dropped.has(m[1]) || strip.lastIndexOf(`create policy ${m[1]} on`) > strip.lastIndexOf(`drop policy ${m[1]} on`));
 const policyCount = new Map();
 for (const [, , tbl] of policies) policyCount.set(tbl.replace('public.', ''), (policyCount.get(tbl.replace('public.', '')) ?? 0) + 1);
-const SERVICE_ONLY = new Set(['friend_code_lookups', 'banned_identifiers', 'moderator_audit', 'data_requests', 'trusted_contacts', 'meeting_checkins']);   // no client access by design; functions only
+const SERVICE_ONLY = new Set(['friend_code_lookups', 'banned_identifiers', 'moderator_audit', 'mode_features', 'photo_verifications', 'data_requests', 'trusted_contacts', 'meeting_checkins']);   // no client access by design; functions only
 for (const t of tables.keys()) if (!policyCount.get(t) && !SERVICE_ONLY.has(t)) errors.push(`table public.${t} has no policy (clients locked out); add one or whitelist it`);
 // 3b. tables created after the blanket 0003 block must enable RLS themselves
 {
@@ -62,10 +62,10 @@ if (policies.some(([, , tbl, cmd]) => tbl.endsWith('post_meet_feedback') && cmd 
 }
 const NO_INSERT = ['conversation_invites', 'calendar_entries', 'matches', 'notifications', 'open_calls', 'open_call_participants', 'events', 'event_participants',
   'wingperson_grants', 'wing_suggestions', 'teams', 'team_members', 'double_dates', 'roulette_signups', 'circles', 'circle_members', 'chemistry_sessions', 'chemistry_players', 'chemistry_responses', 'couple_links', 'appeals',
-  'data_requests', 'trusted_contacts', 'meeting_checkins'];
+  'data_requests', 'trusted_contacts', 'meeting_checkins', 'photo_verifications'];
 const NO_MODIFY = ['open_calls', 'open_call_participants', 'events', 'event_participants', 'wingperson_grants', 'wing_suggestions', 'teams', 'team_members', 'double_dates', 'roulette_signups',
   'circles', 'circle_members', 'chemistry_sessions', 'chemistry_players', 'chemistry_responses',
-  'data_requests', 'trusted_contacts', 'meeting_checkins'];
+  'data_requests', 'trusted_contacts', 'meeting_checkins', 'photo_verifications'];
 for (const t of NO_INSERT) {
   for (const [, name, tbl, cmd] of policies) {
     if (tbl.endsWith(t) && cmd === 'insert') errors.push(`clients must not insert into ${t} (${name}); the API/trigger owns it`);

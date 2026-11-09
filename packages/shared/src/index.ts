@@ -10,3 +10,6 @@ export * from './roulette.ts';
 export * from './activities.ts';
 export * from './notifications.ts';
 export * from './games.ts';
+export * from './mode-theme.ts';
+export * from './mode-features.ts';
+export * from './trust.ts';

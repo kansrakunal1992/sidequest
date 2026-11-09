@@ -8,6 +8,7 @@ import { formatWhen } from '@/core/invite-ui';
 import { colors, spacing } from '@/design/theme';
 import { AppText, Card, EmptyState, ErrorText, Screen, Spacer } from '@/design/ui';
 import { listCalendar } from '@/lib/invites';
+import { useTheme } from '@/lib/theme';
 
 const STATUS: Record<CalendarItem['status'], { label: string; color: string }> = {
   confirmed: { label: 'Confirmed', color: colors.cyan }, tentative: { label: 'Tentative', color: colors.violet },
@@ -15,6 +16,7 @@ const STATUS: Record<CalendarItem['status'], { label: string; color: string }> =
 };
 
 export default function CalendarTab() {
+  const th = useTheme();
   const router = useRouter();
   const [data, setData] = useState<{ upcoming: DaySection[]; past: CalendarItem[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export default function CalendarTab() {
       <AppText variant="headline" accessibilityRole="header">Calendar</AppText>
       <Spacer />
       {error ? <ErrorText>{error}</ErrorText> : null}
-      {!data && !error ? <ActivityIndicator color={colors.violet} style={{ marginTop: 40 }} /> : null}
+      {!data && !error ? <ActivityIndicator color={th.highlight} style={{ marginTop: 40 }} /> : null}
       {data && data.upcoming.length === 0 && data.past.length === 0 ? <EmptyState title="Nothing planned yet" body="Accepted invitations and plans appear here, with reminders before they start." /> : null}
       {data?.upcoming.map((s) => <View key={s.key}><AppText variant="title" style={{ marginBottom: 8 }}>{s.label}</AppText>{s.items.map((it) => <Item key={it.id} it={it} />)}<Spacer h={8} /></View>)}
       {data && data.past.length ? <><AppText variant="title" muted style={{ marginBottom: 8 }}>Earlier</AppText>{data.past.slice(0, 20).map((it) => <Item key={it.id} it={it} />)}</> : null}

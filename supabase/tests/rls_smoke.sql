@@ -133,6 +133,12 @@ do $$ begin
   if (select count(*) from matches) <> 1 then raise exception 'FAIL: mutual like did not create a match'; end if;
 end $$;
 reset role;
+-- The tests below were written before vibes had different features. Keep the REAL matrix aside, let every vibe have every feature for them,
+-- and put the real matrix back in the "Migration 0014" section, which tests the enforcement itself.
+create temp table real_mode_features as select * from public.mode_features;
+insert into public.mode_features (mode_id, feature)
+  select m, f from (values ('serious_dating'), ('hookups'), ('friendship'), ('post_marital'), ('experimentation'), ('adventures')) a(m)
+  cross join (values ('open_calls'), ('activities'), ('circles'), ('roulette'), ('double_dates'), ('games'), ('wingperson'), ('together')) b(f) on conflict do nothing;
 insert into conversations (id, kind, mode_id) values ('00000000-0000-0000-0000-0000000000c1','direct','serious_dating');
 insert into conversation_members (conversation_id, user_id) values
   ('00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-00000000000d');
@@ -1107,6 +1113,137 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000e
 set local role authenticated;
 do $$ begin if (select count(*) from my_blocks()) <> 0 then raise exception 'FAIL: blocked person sees the blocker''s list'; end if; end $$;
 reset role;
+
+-- =====================================================================================================
+-- Migration 0014: not every vibe has every feature (enforced by the database)
+-- =====================================================================================================
+reset role;
+delete from public.mode_features; insert into public.mode_features select * from real_mode_features;   -- the real matrix is back from here on
+do $$ declare cf uuid; ch uuid; begin
+  update profiles set state = 'active' where id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000d', '00000000-0000-0000-0000-00000000000e');
+  insert into user_active_modes (user_id, mode_id) values ('00000000-0000-0000-0000-00000000000a', 'hookups'), ('00000000-0000-0000-0000-00000000000a', 'friendship'), ('00000000-0000-0000-0000-00000000000e', 'hookups'), ('00000000-0000-0000-0000-00000000000e', 'friendship') on conflict do nothing;
+  delete from blocks;
+  insert into conversations (kind, mode_id) values ('direct', 'friendship') returning id into cf;
+  insert into conversation_members (conversation_id, user_id) values (cf, '00000000-0000-0000-0000-00000000000a'), (cf, '00000000-0000-0000-0000-00000000000e');
+  insert into conversations (kind, mode_id) values ('direct', 'hookups') returning id into ch;
+  insert into conversation_members (conversation_id, user_id) values (ch, '00000000-0000-0000-0000-00000000000a'), (ch, '00000000-0000-0000-0000-00000000000e');
+  perform set_config('t.conv_friend', cf::text, true); perform set_config('t.conv_hook', ch::text, true);
+  if (select count(*) from mode_features) <> 25 then raise exception 'FAIL: mode feature rows'; end if;
+  if not (mode_has('friendship', 'roulette') and not mode_has('hookups', 'roulette') and not mode_has('adventures', 'double_dates') and mode_has('experimentation', 'games')) then raise exception 'FAIL: mode_has'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', true);
+set local role authenticated;
+do $$ declare slot timestamptz := date_trunc('hour', now() + interval '3 days'); r uuid; begin
+  begin perform join_roulette(jsonb_build_object('mode_id','hookups','activity','dinner','slot_start',slot,'group_size',4,'energy','social','area_label','soho')); raise exception 'FAIL: roulette in hookups'; exception when sqlstate '42501' then null; end;
+  r := join_roulette(jsonb_build_object('mode_id','friendship','activity','dinner','slot_start',slot,'group_size',4,'energy','social','area_label','soho'));
+  if r is null then raise exception 'FAIL: roulette in friendship refused'; end if;
+  begin perform create_open_call(jsonb_build_object('mode_id','hookups','title','Drinks','area_label','soho','starts_at', now() + interval '2 days')); raise exception 'FAIL: open call in hookups'; exception when sqlstate '42501' then null; end;
+  begin perform post_double_date(gen_random_uuid(), 'hookups', now() + interval '3 days', null); raise exception 'FAIL: double date in hookups'; exception when sqlstate '42501' then null; end;
+  begin perform start_game(current_setting('t.conv_hook')::uuid, 'would_you_rather'); raise exception 'FAIL: game in hookups'; exception when sqlstate '42501' then null; end;
+  if start_game(current_setting('t.conv_friend')::uuid, 'would_you_rather') is null then raise exception 'FAIL: game in friendship refused'; end if;
+end $$;
+reset role;
+
+-- =====================================================================================================
+-- Migration 0015: trust you can see
+-- =====================================================================================================
+do $$ begin
+  delete from photo_verifications; delete from profile_photos where user_id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000e');
+  insert into profile_photos (user_id, storage_path, moderation_status, visible_modes, position) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000a' || '/ver.jpg', 'approved', array['friendship'], 0);
+  insert into profile_photos (user_id, storage_path, moderation_status, visible_modes, position, rejection_reason) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000a' || '/bad.jpg', 'rejected', array['friendship'], 1, 'Not a photo of you');
+  insert into profile_photos (user_id, storage_path, moderation_status, visible_modes, position) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000a' || '/wait.jpg', 'pending', array['friendship'], 2);
+end $$;
+reset role;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', true);
+set local role authenticated;
+do $$ declare v jsonb; v2 jsonb; pending_id uuid; begin
+  v := start_verification(); v2 := start_verification();
+  if v->>'id' <> v2->>'id' or (v->>'pose') is null then raise exception 'FAIL: starting twice should return the same challenge'; end if;
+  begin perform submit_verification((v->>'id')::uuid, '00000000-0000-0000-0000-00000000000b' || '/stolen.jpg'); raise exception 'FAIL: submitted a path in someone else''s folder'; exception when sqlstate '42501' then null; end;
+  perform submit_verification((v->>'id')::uuid, '00000000-0000-0000-0000-00000000000a' || '/' || (v->>'id') || '.jpg');
+  begin perform start_verification(); raise exception 'FAIL: could start while pending'; exception when sqlstate '22023' then null; end;
+  if (my_verification()->'latest'->>'status') <> 'pending' or (my_verification()->>'verified')::boolean then raise exception 'FAIL: my_verification while pending'; end if;
+  begin update profiles set verified_at = now() where id = auth.uid(); raise exception 'FAIL: wrote my own verified badge'; exception when sqlstate '42501' then null; end;
+  if (select count(*) from my_photo_issues() where reason = 'Not a photo of you' and status = 'rejected') <> 1 or (select count(*) from my_photo_issues() where status = 'pending') <> 1 then raise exception 'FAIL: my_photo_issues'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', true);
+set local role authenticated;
+do $$ begin
+  begin perform * from mod_verification_queue(); raise exception 'FAIL: normal user read verification queue'; exception when sqlstate '42501' then null; end;
+  begin perform mod_review_verification(gen_random_uuid(), true); raise exception 'FAIL: normal user approved'; exception when sqlstate '42501' then null; end;
+  begin perform 1 from photo_verifications; raise exception 'FAIL: verification table readable'; exception when sqlstate '42501' then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000d","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', true);
+set local role authenticated;
+do $$ declare q record; c jsonb; begin
+  select * into q from mod_verification_queue() limit 1;
+  if q.verification_id is null or q.approved_photos < 1 or q.pose is null then raise exception 'FAIL: moderator queue'; end if;
+  c := mod_verification_context(q.verification_id);
+  if jsonb_array_length(c->'photo_ids') < 1 or (c->>'pose') is null then raise exception 'FAIL: moderator context'; end if;
+  begin perform mod_review_verification(q.verification_id, false, ' '); raise exception 'FAIL: rejected without a reason'; exception when sqlstate '22023' then null; end;
+  perform mod_review_verification(q.verification_id, false, 'The pose was not shown');
+  begin perform mod_review_verification(q.verification_id, true); raise exception 'FAIL: decided twice'; exception when sqlstate '42501' then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', true);
+set local role authenticated;
+do $$ declare v jsonb; begin
+  if (my_verification()->'latest'->>'status') <> 'rejected' or (my_verification()->'latest'->>'reject_reason') <> 'The pose was not shown' then raise exception 'FAIL: user cannot see why it was rejected'; end if;
+  v := start_verification();
+  perform submit_verification((v->>'id')::uuid, '00000000-0000-0000-0000-00000000000a' || '/' || (v->>'id') || '.jpg');
+end $$;
+reset role;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000d","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', true);
+set local role authenticated;
+do $$ declare q record; begin
+  select * into q from mod_verification_queue() limit 1;
+  perform mod_review_verification(q.verification_id, true);
+end $$;
+reset role;
+do $$ begin
+  if (select verified_at from profiles where id = '00000000-0000-0000-0000-00000000000a') is null then raise exception 'FAIL: approval did not set the badge'; end if;
+  if not exists (select 1 from notifications where user_id = '00000000-0000-0000-0000-00000000000a' and kind = 'verification_result' and (payload->>'approved')::boolean) then raise exception 'FAIL: user not told'; end if;
+  if (select count(*) from moderator_audit where kind in ('verification_approved', 'verification_rejected')) <> 2 then raise exception 'FAIL: verification decisions not audited'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000e', true);
+set local role authenticated;
+do $$ begin
+  if not exists (select 1 from verified_flags(array['00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b']::uuid[]) f where f = '00000000-0000-0000-0000-00000000000a') then raise exception 'FAIL: verified flag not shown'; end if;
+  if exists (select 1 from verified_flags(array['00000000-0000-0000-0000-00000000000b']::uuid[])) then raise exception 'FAIL: unverified shown as verified'; end if;
+end $$;
+reset role;
+-- chat trust: facts about the other person, including copy-paste messaging to several people
+do $$ declare c1 uuid := current_setting('t.conv_friend')::uuid; c2 uuid; c3 uuid; c4 uuid; begin
+  insert into conversations (kind, mode_id) values ('direct', 'friendship') returning id into c2; insert into conversation_members values (c2, '00000000-0000-0000-0000-00000000000e'), (c2, '00000000-0000-0000-0000-00000000000b');
+  insert into conversations (kind, mode_id) values ('direct', 'friendship') returning id into c3; insert into conversation_members values (c3, '00000000-0000-0000-0000-00000000000e'), (c3, '00000000-0000-0000-0000-00000000000c');
+  insert into conversations (kind, mode_id) values ('direct', 'friendship') returning id into c4; insert into conversation_members values (c4, '00000000-0000-0000-0000-00000000000e'), (c4, '00000000-0000-0000-0000-00000000000d');
+  insert into messages (conversation_id, sender_id, body) select x, '00000000-0000-0000-0000-00000000000e', 'Hey beautiful, I am new here, can we chat on another app?' from unnest(array[c1, c2, c3, c4]) x;
+  insert into messages (conversation_id, sender_id, body) values (c1, '00000000-0000-0000-0000-00000000000e', 'short');
+end $$;
+reset role;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', true);
+set local role authenticated;
+do $$ declare t jsonb; begin
+  t := chat_trust(current_setting('t.conv_friend')::uuid);
+  if (t->>'repeated_message_to')::int <> 4 or (t->>'verified')::boolean or (t->>'account_age_days')::int > 1 then raise exception 'FAIL: chat_trust facts: %', t; end if;
+  begin perform chat_trust(gen_random_uuid()); raise exception 'FAIL: chat_trust on a stranger conversation'; exception when sqlstate '42501' then null; end;
+  insert into blocks (blocker_id, blocked_id) values (auth.uid(), '00000000-0000-0000-0000-00000000000e');
+  begin perform chat_trust(current_setting('t.conv_friend')::uuid); raise exception 'FAIL: chat_trust through a block'; exception when sqlstate '42501' then null; end;
+end $$;
+reset role;
+delete from blocks;
 
 -- a banned person cannot simply register again with the same email
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000ee', 'banned@test.local');

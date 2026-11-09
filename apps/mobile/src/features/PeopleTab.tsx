@@ -16,8 +16,10 @@ import { FilterSheet } from './FilterSheet';
 import { MatchModal } from './MatchModal';
 import { PersonCardView } from './PersonCardView';
 import { SwipeCard } from './SwipeCard';
+import { useTheme } from '@/lib/theme';
 
 export function PeopleTab() {
+  const th = useTheme();
   const { current } = useModes();
   const router = useRouter();
   const [filters, setFilters] = useState<Filters>(noFilters);
@@ -97,7 +99,7 @@ export function PeopleTab() {
         </Pressable>
       </Row>
       {error ? <ErrorText>{error}</ErrorText> : null}
-      {loading ? <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator color={colors.violet} size="large" /></View>
+      {loading ? <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator color={th.highlight} size="large" /></View>
         : !top ? (
           <View style={{ flex: 1 }}>
             <EmptyState title="You're all caught up" body={hasFilters(filters) ? 'Nobody matches these filters right now. Try widening them.' : 'Check back soon. New people and plans appear all the time.'} />

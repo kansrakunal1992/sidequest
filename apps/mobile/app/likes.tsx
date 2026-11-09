@@ -13,6 +13,7 @@ import { ensureMatchConversation } from '@/lib/chat';
 import { likesReceived, myMatches, sendLike, visitorsList } from '@/lib/discovery';
 import { useModes } from '@/lib/modes';
 import { usePhotoUrls } from '@/lib/photo-urls';
+import { useTheme } from '@/lib/theme';
 
 type Tab = 'likes' | 'matches' | 'visitors';
 
@@ -22,6 +23,7 @@ function Avatar({ uri, size = 56 }: { uri?: string; size?: number }) {
 
 /** Free and unblurred, always. A like and a visit are different things and are listed separately. */
 export default function LikesScreen() {
+  const th = useTheme();
   const router = useRouter();
   const { current } = useModes();
   const [tab, setTab] = useState<Tab>('likes');
@@ -67,14 +69,14 @@ export default function LikesScreen() {
         <Spacer h={spacing.md} />
         <Segmented<Tab> value={tab} onChange={setTab} options={[{ id: 'likes', label: `Likes (${likes.length})` }, { id: 'matches', label: `Matches (${matches.length})` }, { id: 'visitors', label: `Visitors (${visitors.length})` }]} />
       </View>
-      {loading ? <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator color={colors.violet} size="large" /></View> : (
-        <ScrollView contentContainerStyle={{ padding: spacing.xl }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} tintColor={colors.violet} />}>
+      {loading ? <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator color={th.highlight} size="large" /></View> : (
+        <ScrollView contentContainerStyle={{ padding: spacing.xl }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} tintColor={th.highlight} />}>
           {error ? <ErrorText>{error}</ErrorText> : null}
 
           {tab === 'likes' && (likes.length === 0 ? <EmptyState title="No likes yet" body="When someone likes you in this vibe, they appear here straight away. Nothing is hidden or locked." /> : (
             <>
               {latest ? (
-                <LinearGradient colors={gradients.brand} style={st.banner}>
+                <LinearGradient colors={[th.accent, th.accent2]} style={st.banner}>
                   <Ionicons name="heart" size={24} color="#fff" />
                   <View style={{ flex: 1 }}><Text style={st.bannerTitle}>{likes.length === 1 ? 'Someone liked you!' : `${likes.length} people liked you`}</Text><Text style={st.bannerSub}>{timeAgo(latest.likedAt, now)}</Text></View>
                 </LinearGradient>
@@ -84,7 +86,7 @@ export default function LikesScreen() {
                 <Pressable key={l.userId} onPress={() => open(l.userId)} style={st.row} accessibilityRole="button" accessibilityLabel={`${l.displayName}, ${l.age}. ${l.kind === 'spark' ? 'Sent a spark' : 'Liked you'}`}>
                   <Avatar uri={photos[l.userId]?.[0]} />
                   <View style={{ flex: 1 }}>
-                    <Row><Text style={st.name}>{l.displayName}, {l.age}</Text>{l.verified ? <Ionicons name="checkmark-circle" size={16} color={colors.cyan} /> : null}{l.kind === 'spark' ? <Ionicons name="flash" size={16} color={colors.violet} /> : null}</Row>
+                    <Row><Text style={st.name}>{l.displayName}, {l.age}</Text>{l.verified ? <Ionicons name="checkmark-circle" size={16} color={colors.cyan} /> : null}{l.kind === 'spark' ? <Ionicons name="flash" size={16} color={th.highlight} /> : null}</Row>
                     <Text style={st.sub}>{l.kind === 'spark' ? 'Sent you a spark' : 'Liked you'} · {timeAgo(l.likedAt, now)}</Text>
                   </View>
                   {l.matched ? <Text style={st.tag}>Matched</Text> : l.iLikedBack ? <Text style={st.tag}>Liked back</Text>

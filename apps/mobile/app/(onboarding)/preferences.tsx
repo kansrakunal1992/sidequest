@@ -9,6 +9,7 @@ import { enablePush } from '@/lib/push';
 import { useOnboarding } from '@/lib/onboarding-context';
 import { useSession } from '@/lib/session';
 import { useState } from 'react';
+import { useTheme } from '@/lib/theme';
 
 const LABEL: Record<Gender, string> = { woman: 'Women', man: 'Men', non_binary: 'Non-binary people', other: 'Others' };
 
@@ -25,10 +26,11 @@ function Stepper({ label, value, unit, min, max, step, onChange }: { label: stri
   );
 }
 function Toggle({ label, hint, value, onChange }: { label: string; hint: string; value: boolean; onChange: (v: boolean) => void }) {
+  const th = useTheme();
   return (
     <Row style={{ justifyContent: 'space-between', marginBottom: 16, alignItems: 'flex-start' }}>
       <View style={{ flex: 1, paddingRight: 12 }}><AppText>{label}</AppText><AppText variant="caption">{hint}</AppText></View>
-      <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.primary, false: '#3A3160' }} thumbColor="#fff" accessibilityLabel={label} />
+      <Switch value={value} onValueChange={onChange} trackColor={{ true: th.accent, false: '#3A3160' }} thumbColor="#fff" accessibilityLabel={label} />
     </Row>
   );
 }

@@ -6,17 +6,21 @@ import { SUGGESTED_INTERESTS, LIMITS, nameProblem } from '@/core/onboarding';
 import { PROMPT_LIMITS, PROMPT_QUESTIONS, cleanPrompts, validateModeText } from '@/core/prompts';
 import type { PromptAnswer } from '@/core/prompts';
 import { MODES, colors, radius, spacing } from '@/design/theme';
+import { parsePhotoIssues, photoIssueLines } from '@/core/photo-issues';
+import { db } from '@/lib/db';
 import { AppText, Button, Card, Chip, ErrorText, Row, Screen, Spacer, TextField, Wrap } from '@/design/ui';
 import { useModes } from '@/lib/modes';
 import { pickPhotos, uploadPhotos } from '@/lib/photos';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 import type { ModeId } from '@sidequest/shared';
+import { useTheme } from '@/lib/theme';
 
 interface Photo { id: string; path: string; status: string; visibleModes: string[]; url?: string }
 const STATUS: Record<string, string> = { pending: 'In review', approved: 'Live', rejected: 'Not approved' };
 
 export default function EditProfile() {
+  const th = useTheme();
   const router = useRouter();
   const { session } = useSession();
   const { active, current } = useModes();
@@ -25,6 +29,7 @@ export default function EditProfile() {
   const [editMode, setEditMode] = useState<ModeId | null>(current);
   const [headline, setHeadline] = useState(''); const [modeBio, setModeBio] = useState(''); const [prompts, setPrompts] = useState<PromptAnswer[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [issues, setIssues] = useState<ReturnType<typeof parsePhotoIssues>>([]);
   const [msg, setMsg] = useState<string | null>(null); const [err, setErr] = useState<string | null>(null); const [busy, setBusy] = useState(false);
 
   const loadPhotos = useCallback(async () => {
@@ -33,6 +38,7 @@ export default function EditProfile() {
     const signed = rows.length ? await supabase.storage.from('profile-photos').createSignedUrls(rows.map((r) => r.path), 600) : { data: [] as { path: string; signedUrl: string }[] };
     const byPath = new Map((signed.data ?? []).map((s) => [s.path, s.signedUrl]));
     setPhotos(rows.map((r) => ({ ...r, url: byPath.get(r.path) ?? undefined })));
+    setIssues(await db.myPhotoIssues().then(parsePhotoIssues).catch(() => []));   // reasons are a bonus: if the function is missing the photos still show
   }, [uid]);
 
   useEffect(() => {
@@ -136,12 +142,13 @@ export default function EditProfile() {
                 {ph.url ? <Image source={{ uri: ph.url }} style={StyleSheet.absoluteFill} /> : null}
                 <View style={st.badge}><Text style={st.badgeText}>{STATUS[ph.status] ?? ph.status}</Text></View>
                 <Pressable onPress={() => void removePhoto(ph)} accessibilityRole="button" accessibilityLabel="Remove photo" style={st.x}><Ionicons name="close" size={16} color="#fff" /></Pressable>
-                <Pressable onPress={() => void toggleVisible(ph)} accessibilityRole="switch" accessibilityState={{ checked: shown }} accessibilityLabel={`Show in ${editMode ? MODES[editMode].label : 'this vibe'}`} style={[st.eye, shown && { backgroundColor: colors.primary }]}>
+                <Pressable onPress={() => void toggleVisible(ph)} accessibilityRole="switch" accessibilityState={{ checked: shown }} accessibilityLabel={`Show in ${editMode ? MODES[editMode].label : 'this vibe'}`} style={[st.eye, shown && { backgroundColor: th.accent }]}>
                   <Ionicons name={shown ? 'eye' : 'eye-off'} size={16} color="#fff" /></Pressable>
               </View>
             );
           })}
         </View>
+        {photoIssueLines(photos.map((p) => p.id), issues).map((l) => <ErrorText key={l}>{l}</ErrorText>)}
         <Spacer />
         {photos.length < 6 ? <Button kind="secondary" label="Add photos" onPress={addPhotos} loading={busy} /> : null}
       </Card>

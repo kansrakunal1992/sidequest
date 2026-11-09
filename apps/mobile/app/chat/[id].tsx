@@ -21,14 +21,16 @@ import { getThreadInfo, getThreadMembers, reportContent } from '@/lib/plans';
 import { pickPhotos } from '@/lib/photos';
 import { useSession } from '@/lib/session';
 import { useUnread } from '@/lib/unread';
+import { useTheme } from '@/lib/theme';
 
 function ImageBubble({ m, mine, onError }: { m: ChatMessage; mine: boolean; onError: (e: string) => void }) {
+  const th = useTheme();
   const me = useSession().session?.user.id ?? '';
   const [url, setUrl] = useState<string | null>(null);
   const revealed = mine || m.revealedBy.includes(me);
   const fetchUrl = useCallback(async () => { try { setUrl((await api.chatMediaUrl(m.id)).url); } catch (e) { onError(friendlyError(e)); } }, [m.id, onError]);
   useEffect(() => { if (revealed) void fetchUrl(); }, [revealed, fetchUrl]);
-  if (revealed) return url ? <Image source={{ uri: url }} style={st.img} accessibilityLabel="Photo" /> : <View style={[st.img, st.imgWait]}><ActivityIndicator color={colors.violet} /></View>;
+  if (revealed) return url ? <Image source={{ uri: url }} style={st.img} accessibilityLabel="Photo" /> : <View style={[st.img, st.imgWait]}><ActivityIndicator color={th.highlight} /></View>;
   return (
     <Pressable onPress={async () => { try { await revealMedia(m.id); await fetchUrl(); } catch { onError('Could not open the photo.'); } }} style={[st.img, st.imgWait]} accessibilityRole="button" accessibilityLabel="Photo hidden. Tap to view">
       <Ionicons name="eye-off" size={28} color={colors.textMuted} /><Text style={{ color: colors.textMuted, marginTop: 6 }}>Photo. Tap to view</Text>
@@ -38,6 +40,7 @@ function ImageBubble({ m, mine, onError }: { m: ChatMessage; mine: boolean; onEr
 }
 
 export default function Thread() {
+  const th = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { session } = useSession();
@@ -120,8 +123,8 @@ export default function Thread() {
     setMore(page.length >= 40); setMsgs((p) => mergeMessages(p, page));
   }
 
-  if (loading) return <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center' }}><ActivityIndicator color={colors.violet} size="large" /></View>;
-  if (!info) return <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, padding: spacing.xl, justifyContent: 'center' }}><AppText style={{ textAlign: 'center' }}>{error ?? 'This conversation is not available.'}</AppText><Pressable onPress={() => router.back()}><AppText style={{ textAlign: 'center', marginTop: 12, color: colors.violet }}>Go back</AppText></Pressable></SafeAreaView>;
+  if (loading) return <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center' }}><ActivityIndicator color={th.highlight} size="large" /></View>;
+  if (!info) return <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, padding: spacing.xl, justifyContent: 'center' }}><AppText style={{ textAlign: 'center' }}>{error ?? 'This conversation is not available.'}</AppText><Pressable onPress={() => router.back()}><AppText style={{ textAlign: 'center', marginTop: 12, color: th.highlight }}>Go back</AppText></Pressable></SafeAreaView>;
 
   const inverted = [...msgs].reverse();
   return (
@@ -148,8 +151,8 @@ export default function Thread() {
                   </MessageWarningBanner>
                 ) : (
                 <Pressable onLongPress={() => { if (!mine) reportMessage(item); }} delayLongPress={500} accessibilityHint={mine ? undefined : 'Long press to report this message'}>
-                <View style={[st.bubble, mine ? st.mine : st.theirs]}>
-                  {item.mediaKind === 'image' ? <ImageBubble m={item} mine={mine} onError={setError} /> : <Text style={st.text}>{item.body}</Text>}
+                <View style={[st.bubble, mine ? [st.mine, { backgroundColor: th.accent }] : st.theirs]}>
+                  {item.mediaKind === 'image' ? <ImageBubble m={item} mine={mine} onError={setError} /> : <Text style={[st.text, mine && { color: th.onAccent }]}>{item.body}</Text>}
                 </View>
                 </Pressable>
                 )}
@@ -163,8 +166,8 @@ export default function Thread() {
         <Row style={st.composer}>
           <Pressable onPress={sendPhoto} disabled={!gate.allowed} accessibilityRole="button" accessibilityLabel="Send a photo" hitSlop={8}><Ionicons name="image" size={24} color={gate.allowed ? colors.textMuted : '#3A3160'} /></Pressable>
           <TextInput value={text} onChangeText={setText} placeholder={gate.allowed ? 'Message' : 'Waiting for a reply'} placeholderTextColor={colors.textMuted} editable={gate.allowed} multiline maxLength={4000} style={st.input} accessibilityLabel="Message" />
-          <Pressable onPress={() => void send()} disabled={!text.trim() || sending || !gate.allowed} accessibilityRole="button" accessibilityLabel="Send" style={[st.send, (!text.trim() || !gate.allowed) && { opacity: 0.4 }]}>
-            {sending ? <ActivityIndicator color="#fff" /> : <Ionicons name="arrow-up" size={20} color="#fff" />}
+          <Pressable onPress={() => void send()} disabled={!text.trim() || sending || !gate.allowed} accessibilityRole="button" accessibilityLabel="Send" style={[st.send, { backgroundColor: th.accent }, (!text.trim() || !gate.allowed) && { opacity: 0.4 }]}>
+            {sending ? <ActivityIndicator color={th.onAccent} /> : <Ionicons name="arrow-up" size={20} color={th.onAccent} />}
           </Pressable>
         </Row>
       </KeyboardAvoidingView>

@@ -1,5 +1,7 @@
 # SideQuest build progress
 
+> **v12 checkpoint (work in progress): read `docs/HANDOFF_WAYPOINT.md` first.** It holds the exact state, the owner's five new requests (rebrand to Waypoint, notifications, location, per-vibe themes and features, explicit trust features), what is done (migrations 0014 and 0015, shared theme/feature/trust modules, all tested) and what is next. Progress stays at **84** until the app, API and admin integration of those requests is written and verified. Counts at this checkpoint: shared 49, API 116 (+8 need a database), mobile 110, smoke test 235 checks on migrations 0001-0015.
+
 **Overall: 84 / 100**   (drop: sidequest-v10.zip. Steps 2 and 3 of the v8 plan are done: moderation page, all Circles / safety / inbox / game / restricted-account screens. Milestone 9 (release prep) and the quality discussion are still to do. Nothing has run on a phone or against a hosted Supabase project; see Verification honesty.)
 
 | # | Milestone | Weight | Done | Status |

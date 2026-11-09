@@ -6,8 +6,10 @@ import { colors } from '@/design/theme';
 import { AppText, Button, Card, EmptyState, ErrorText, Screen, Spacer } from '@/design/ui';
 import { supabase } from '@/lib/supabase';
 import { fmtWhen, useAction, useAsync } from '@/lib/use-async';
+import { useTheme } from '@/lib/theme';
 
 export default function Notifications() {
+  const th = useTheme();
   const router = useRouter();
   const inbox = useAsync(async (): Promise<NotificationRow[]> => {
     const { data, error } = await supabase.from('notifications').select('id, kind, payload, read_at, created_at').order('created_at', { ascending: false }).limit(60);
@@ -33,7 +35,7 @@ export default function Notifications() {
         const e = describeNotification(n.kind, n.payload);
         return (
           <Pressable key={n.id} onPress={() => open(n)} accessibilityRole="button" accessibilityLabel={`${e.title}. ${e.body}${n.read_at ? '' : '. New'}`} style={{ marginBottom: 8 }}>
-            <Card style={n.read_at ? undefined : { borderColor: colors.primary, borderWidth: 1 }}>
+            <Card style={n.read_at ? undefined : { borderColor: th.accent, borderWidth: 1 }}>
               <AppText variant="title">{e.title}</AppText><AppText>{e.body}</AppText><AppText muted variant="caption">{fmtWhen(n.created_at)}</AppText>
             </Card>
           </Pressable>);

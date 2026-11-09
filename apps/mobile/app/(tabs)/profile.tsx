@@ -9,8 +9,10 @@ import { AppText, Button, Card, ErrorText, Row, Screen, Spacer } from '@/design/
 import { useModes } from '@/lib/modes';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/lib/theme';
 
 export default function Profile() {
+  const th = useTheme();
   const { active, togglePause, addMode } = useModes();
   const { signOut, session } = useSession();
   const router = useRouter();
@@ -52,15 +54,15 @@ export default function Profile() {
       <Card>
         <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
           <View style={{ flex: 1, paddingRight: 12 }}><Text style={{ color: colors.text, fontWeight: '700' }}>Browse incognito</Text><Text style={{ color: colors.textMuted, fontSize: 12 }}>Free for everyone. People you view will not see your visit.</Text></View>
-          <Switch value={incognito} onValueChange={(v) => void setFlag('incognito', v, setIncognito)} trackColor={{ true: colors.primary, false: '#3A3160' }} thumbColor="#fff" accessibilityLabel="Browse incognito" />
+          <Switch value={incognito} onValueChange={(v) => void setFlag('incognito', v, setIncognito)} trackColor={{ true: th.accent, false: '#3A3160' }} thumbColor="#fff" accessibilityLabel="Browse incognito" />
         </Row>
         <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
           <View style={{ flex: 1, paddingRight: 12 }}><Text style={{ color: colors.text, fontWeight: '700' }}>Read receipts</Text><Text style={{ color: colors.textMuted, fontSize: 12 }}>Let people see when you have read their message. Turn off for no pressure.</Text></View>
-          <Switch value={receipts} onValueChange={(v) => void setFlag('read_receipts', v, setReceipts)} trackColor={{ true: colors.primary, false: '#3A3160' }} thumbColor="#fff" accessibilityLabel="Read receipts" />
+          <Switch value={receipts} onValueChange={(v) => void setFlag('read_receipts', v, setReceipts)} trackColor={{ true: th.accent, false: '#3A3160' }} thumbColor="#fff" accessibilityLabel="Read receipts" />
         </Row>
         <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <View style={{ flex: 1, paddingRight: 12 }}><Text style={{ color: colors.text, fontWeight: '700' }}>Allow invitations before matching</Text><Text style={{ color: colors.textMuted, fontSize: 12 }}>Lets people send a friendly invite to chat. You choose whether to reply.</Text></View>
-          <Switch value={intros} onValueChange={(v) => void setFlag('accepts_intro_invites', v, setIntros)} trackColor={{ true: colors.primary, false: '#3A3160' }} thumbColor="#fff" accessibilityLabel="Allow invitations before matching" />
+          <Switch value={intros} onValueChange={(v) => void setFlag('accepts_intro_invites', v, setIntros)} trackColor={{ true: th.accent, false: '#3A3160' }} thumbColor="#fff" accessibilityLabel="Allow invitations before matching" />
         </Row>
       </Card>
       <Spacer />
@@ -78,7 +80,7 @@ export default function Profile() {
                 <Ionicons name={t.icon as never} size={22} color={mode.accent} />
                 <View><Text style={{ color: colors.text, fontWeight: '700' }}>{mode.label}</Text><Text style={{ color: colors.textMuted, fontSize: 12 }}>{!row ? 'Not added' : row.paused ? 'Paused' : 'On'}</Text></View>
               </Row>
-              <Switch value={on} onValueChange={(v) => void flip(t.id, v)} trackColor={{ true: colors.primary, false: '#3A3160' }} thumbColor="#fff" accessibilityLabel={`${mode.label} vibe`} />
+              <Switch value={on} onValueChange={(v) => void flip(t.id, v)} trackColor={{ true: th.accent, false: '#3A3160' }} thumbColor="#fff" accessibilityLabel={`${mode.label} vibe`} />
             </Row>
           );
         })}

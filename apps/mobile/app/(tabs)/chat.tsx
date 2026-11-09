@@ -19,11 +19,13 @@ import { useModes } from '@/lib/modes';
 import { usePhotoUrls } from '@/lib/photo-urls';
 import { useSession } from '@/lib/session';
 import { useUnread } from '@/lib/unread';
+import { useTheme } from '@/lib/theme';
 
 type Tab = 'messages' | 'invitations';
 const Avatar = ({ uri }: { uri?: string }) => (uri ? <Image source={{ uri }} style={st.avatar} /> : <View style={[st.avatar, { backgroundColor: colors.surfaceRaised }]} />);
 
 export default function ChatTab() {
+  const th = useTheme();
   const { current } = useModes();
   const { session } = useSession();
   const { refresh: refreshUnread } = useUnread();
@@ -60,7 +62,7 @@ export default function ChatTab() {
         <View style={{ flex: 1 }}>
           <Text style={st.name}>{people[who]?.displayName ?? 'Someone'}</Text>
           <View style={st.meta}><Ionicons name={FORMAT_ICONS[i.format as Format] as never} size={14} color={colors.textMuted} /><Text style={st.sub}>{FORMAT_LABELS[i.format as Format]} · {formatWhen(i.startsAt)}</Text></View>
-          <Text style={[st.state, s.tone === 'good' && { color: colors.cyan }, s.tone === 'wait' && { color: colors.violet }]}>{s.label}</Text>
+          <Text style={[st.state, s.tone === 'good' && { color: colors.cyan }, s.tone === 'wait' && { color: th.highlight }]}>{s.label}</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
       </Pressable>
@@ -74,7 +76,7 @@ export default function ChatTab() {
       <Segmented<Tab> value={tab} onChange={setTab} options={[{ id: 'messages', label: `Messages${convs.some((c) => c.unread) ? ' •' : ''}` }, { id: 'invitations', label: `Invitations${needsReply.length ? ` (${needsReply.length})` : ''}` }]} />
       <Spacer h={spacing.md} />
       {error ? <ErrorText>{error}</ErrorText> : null}
-      {loading ? <ActivityIndicator color={colors.violet} style={{ marginTop: 40 }} /> : tab === 'messages' ? (
+      {loading ? <ActivityIndicator color={th.highlight} style={{ marginTop: 40 }} /> : tab === 'messages' ? (
         <>
           <PushPrompt />
           {convs.length === 0 ? <EmptyState title="No conversations yet" body="When you match, or someone accepts your invitation, you can chat here." /> : convs.map((c) => (

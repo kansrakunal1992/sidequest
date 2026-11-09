@@ -15,8 +15,10 @@ import { api } from '@/lib/api';
 import { addToDeviceCalendar, counterparts, hasPostMeetFeedback } from '@/lib/invites';
 import type { Counterpart } from '@/lib/invites';
 import { useSession } from '@/lib/session';
+import { useTheme } from '@/lib/theme';
 
 export default function InviteDetail() {
+  const th = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { session } = useSession();
@@ -49,7 +51,7 @@ export default function InviteDetail() {
     try { const r = await fn(); if (r) setInv(r); await load(); if (a === 'complete') setFeedback(true); } catch (e) { setError(friendlyError(e)); } finally { setBusy(null); }
   }
   const confirm = (title: string, message: string, ok: string, fn: () => void) => Alert.alert(title, message, [{ text: 'Not now', style: 'cancel' }, { text: ok, onPress: fn }]);
-  if (!inv) return <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', padding: spacing.xl }}>{error ? <><AppText style={{ textAlign: 'center' }}>{error}</AppText><Spacer /><Button kind="secondary" label="Go back" onPress={() => router.back()} /></> : <ActivityIndicator color={colors.violet} size="large" />}</SafeAreaView>;
+  if (!inv) return <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', padding: spacing.xl }}>{error ? <><AppText style={{ textAlign: 'center' }}>{error}</AppText><Spacer /><Button kind="secondary" label="Go back" onPress={() => router.back()} /></> : <ActivityIndicator color={th.highlight} size="large" />}</SafeAreaView>;
 
   const s = stateSummary(inv, me);
   const confirmed = inv.state === 'accepted' || inv.state === 'rescheduled';
@@ -57,17 +59,17 @@ export default function InviteDetail() {
   const party = myParty(inv, me);
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScrollView contentContainerStyle={{ padding: spacing.xl }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} tintColor={colors.violet} />}>
+      <ScrollView contentContainerStyle={{ padding: spacing.xl }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} tintColor={th.highlight} />}>
         <Row style={{ marginBottom: spacing.md }}>
           <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Back" hitSlop={12}><Ionicons name="chevron-back" size={26} color={colors.text} /></Pressable>
           <AppText variant="headline" accessibilityRole="header">{FORMAT_LABELS[inv.format as Format]}</AppText>
         </Row>
         <Card>
-          <Row><Ionicons name={FORMAT_ICONS[inv.format as Format] as never} size={20} color={colors.violet} /><Text style={{ color: colors.text, fontSize: 18, fontWeight: '800' }}>{party === 'sender' ? `With ${name}` : `From ${name}`}</Text>{who?.verified ? <Ionicons name="checkmark-circle" size={16} color={colors.cyan} /> : null}</Row>
+          <Row><Ionicons name={FORMAT_ICONS[inv.format as Format] as never} size={20} color={th.highlight} /><Text style={{ color: colors.text, fontSize: 18, fontWeight: '800' }}>{party === 'sender' ? `With ${name}` : `From ${name}`}</Text>{who?.verified ? <Ionicons name="checkmark-circle" size={16} color={colors.cyan} /> : null}</Row>
           <Spacer h={8} /><AppText variant="title">{formatWhen(inv.startsAt)}</AppText>
           <AppText muted variant="caption">{inv.durationMinutes} minutes · shown in your time zone</AppText>
           {inv.note ? <><Spacer h={10} /><AppText>"{inv.note}"</AppText></> : null}
-          <Spacer h={10} /><Text style={{ color: s.tone === 'good' ? colors.cyan : s.tone === 'wait' ? colors.violet : colors.textMuted, fontWeight: '700' }}>{s.label}</Text>
+          <Spacer h={10} /><Text style={{ color: s.tone === 'good' ? colors.cyan : s.tone === 'wait' ? th.highlight : colors.textMuted, fontWeight: '700' }}>{s.label}</Text>
         </Card>
         {error ? <ErrorText>{error}</ErrorText> : null}
 

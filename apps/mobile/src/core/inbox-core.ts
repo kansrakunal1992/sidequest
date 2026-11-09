@@ -46,6 +46,7 @@ const ENTRY: Record<NotificationKind, (p: Payload) => InboxEntry> = {
   checkin_help: () => ({ title: 'A friend asked for help', body: 'A friend has asked for help. Please reach out to them now.', route: '/safety/trusted' }),
   checkin_safe: () => ({ title: 'Good news', body: 'The friend you were worried about has confirmed they are okay.', route: '/safety/trusted' }),
   moderation_notice: () => ({ title: 'An update on your account', body: 'Open Safety to read an important message.', route: '/safety' }),
+  verification_result: () => ({ title: 'Verification update', body: 'Your photo verification was reviewed. Open to see the result.', route: '/safety/verify' }),
   export_ready: () => ({ title: 'Your data export is ready', body: 'Download it within 7 days.', route: '/safety/data' }),
 };
 export function describeNotification(kind: string, payload: Payload | null): InboxEntry {

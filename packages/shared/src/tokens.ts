@@ -9,8 +9,8 @@ export const colors = {
   coral: '#FF6F91',
   text: '#F8F6FF',
   textMuted: '#B9B0CD',
-  ctaFrom: '#4F6BFF',
-  ctaTo: '#8B3DFF',
+  ctaFrom: '#4458E8',
+  ctaTo: '#7C3AED',
 } as const;
 
 export const radius = { sm: 12, md: 20, lg: 28, pill: 999 } as const;

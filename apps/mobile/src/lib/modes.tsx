@@ -51,6 +51,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   const value = useMemo(() => ({ active, current, setCurrent: setCurrentState as (m: ModeId) => void, togglePause, addMode, refresh }), [active, current, togglePause, addMode, refresh]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
+/** Like useModes, but returns null instead of throwing outside the provider. For look-and-feel code that must never crash a screen (for example an error screen). */
+export function useModesOptional(): ModeState | null { return useContext(Ctx); }
+
 export function useModes(): ModeState {
   const v = useContext(Ctx);
   if (!v) throw new Error('useModes must be used inside ModeProvider');

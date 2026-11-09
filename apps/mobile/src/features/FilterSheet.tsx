@@ -4,11 +4,13 @@ import { colors, radius, spacing } from '@/design/theme';
 import { AppText, Button, Chip, Row, Spacer, Wrap } from '@/design/ui';
 import { noFilters } from '@/lib/discovery';
 import type { Filters } from '@/lib/discovery';
+import { useTheme } from '@/lib/theme';
 
 const DISTANCES = [5, 10, 25, 50, 100];
 
 /** Filters are free for everyone. Nothing here is locked. */
 export function FilterSheet({ visible, value, onChange, onClose }: { visible: boolean; value: Filters; onChange: (f: Filters) => void; onClose: () => void }) {
+  const th = useTheme();
   return (
     <Modal transparent animationType="slide" visible={visible} onRequestClose={onClose}>
       <Pressable style={st.backdrop} onPress={onClose} accessibilityLabel="Close filters" />
@@ -26,7 +28,7 @@ export function FilterSheet({ visible, value, onChange, onClose }: { visible: bo
         <Spacer />
         <Row style={{ justifyContent: 'space-between' }}>
           <AppText>Available tonight</AppText>
-          <Switch value={value.availableTonight} onValueChange={(v) => onChange({ ...value, availableTonight: v })} trackColor={{ true: colors.primary, false: '#3A3160' }} thumbColor="#fff" accessibilityLabel="Available tonight" />
+          <Switch value={value.availableTonight} onValueChange={(v) => onChange({ ...value, availableTonight: v })} trackColor={{ true: th.accent, false: '#3A3160' }} thumbColor="#fff" accessibilityLabel="Available tonight" />
         </Row>
         <Spacer />
         <Row><View style={{ flex: 1 }}><Button kind="secondary" label="Clear" onPress={() => onChange(noFilters)} /></View><View style={{ flex: 1 }}><Button label="Done" onPress={onClose} /></View></Row>

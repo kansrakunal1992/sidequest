@@ -12,8 +12,10 @@ import { AppText, Button, Card, ErrorText, Row, Spacer } from '@/design/ui';
 import { activityPeople, cancelActivity, findActivity, joinActivity, leaveActivity, reportContent } from '@/lib/plans';
 import type { PlanPerson } from '@/lib/plans';
 import { useSession } from '@/lib/session';
+import { useTheme } from '@/lib/theme';
 
 export default function ActivityDetail() {
+  const th = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useSession(); const router = useRouter(); const me = session?.user.id ?? '';
   const [a, setA] = useState<ActivityItem | null>(null);
@@ -32,19 +34,19 @@ export default function ActivityDetail() {
   async function run(fn: () => Promise<unknown>) { setBusy(true); setError(null); try { await fn(); await load(); } catch (e) { setError(planErrorMessage((e as { code?: string }).code)); await load(); } finally { setBusy(false); } }
   const ask = (t: string, m: string, ok: string, fn: () => void) => Alert.alert(t, m, [{ text: 'Not now', style: 'cancel' }, { text: ok, onPress: fn }]);
 
-  if (!a) return <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', padding: spacing.xl }}>{error ? <><AppText style={{ textAlign: 'center' }}>{error}</AppText><Spacer /><Button kind="secondary" label="Go back" onPress={() => router.back()} /></> : <ActivityIndicator color={colors.violet} size="large" />}</SafeAreaView>;
+  if (!a) return <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', padding: spacing.xl }}>{error ? <><AppText style={{ textAlign: 'center' }}>{error}</AppText><Spacer /><Button kind="secondary" label="Go back" onPress={() => router.back()} /></> : <ActivityIndicator color={th.highlight} size="large" />}</SafeAreaView>;
   const cat = ACTIVITY_CATEGORIES.find((c) => c.id === a.category); const badge = activityBadge(a);
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScrollView contentContainerStyle={{ padding: spacing.xl }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} tintColor={colors.violet} />}>
+      <ScrollView contentContainerStyle={{ padding: spacing.xl }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} tintColor={th.highlight} />}>
         <Row style={{ marginBottom: spacing.md }}>
           <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Back" hitSlop={12}><Ionicons name="chevron-back" size={26} color={colors.text} /></Pressable>
           <AppText variant="headline" accessibilityRole="header" style={{ flex: 1 }}>Activity</AppText>
         </Row>
         <Card>
-          <Row><Ionicons name={(cat?.icon ?? 'sparkles') as never} size={18} color={colors.violet} /><Text style={{ color: colors.violet, fontWeight: '700' }}>{cat?.label ?? a.category}</Text></Row>
+          <Row><Ionicons name={(cat?.icon ?? 'sparkles') as never} size={18} color={th.highlight} /><Text style={{ color: th.highlight, fontWeight: '700' }}>{cat?.label ?? a.category}</Text></Row>
           <AppText variant="title" style={{ marginTop: 4 }}>{a.title}</AppText>
-          {badge ? <Text style={{ color: badge.tone === 'good' ? colors.cyan : colors.violet, fontWeight: '700', marginTop: 4 }}>{badge.label}</Text> : null}
+          {badge ? <Text style={{ color: badge.tone === 'good' ? colors.cyan : th.highlight, fontWeight: '700', marginTop: 4 }}>{badge.label}</Text> : null}
           <Spacer h={10} /><AppText>{formatWhen(a.startsAt)}</AppText>
           <AppText muted variant="caption">{a.areaLabel}{a.venue ? ` · ${a.venue}` : ''}</AppText>
           <AppText muted variant="caption">{a.isMine ? 'Hosted by you' : `Hosted by ${a.hostName}`} · {goingLabel(a)}</AppText>

@@ -16,10 +16,12 @@ import { myMatches, passPerson, recordInteraction, sendLike, viewProfile } from 
 import { useModes } from '@/lib/modes';
 import { usePhotoUrls } from '@/lib/photo-urls';
 import { useSession } from '@/lib/session';
+import { useTheme } from '@/lib/theme';
 
 const W = Dimensions.get('window').width;
 
 export default function PersonScreen() {
+  const th = useTheme();
   const { id, mode: modeParam } = useLocalSearchParams<{ id: string; mode?: string }>();
   const { current } = useModes();
   const { session } = useSession();
@@ -43,7 +45,7 @@ export default function PersonScreen() {
 
   if (!id || !mode) return null;
   if (error) return <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, padding: spacing.xl, justifyContent: 'center' }}><AppText style={{ textAlign: 'center' }}>{error}</AppText><Spacer /><Button kind="secondary" label="Go back" onPress={() => router.back()} /></SafeAreaView>;
-  if (!p) return <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center' }}><ActivityIndicator color={colors.violet} size="large" /></View>;
+  if (!p) return <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center' }}><ActivityIndicator color={th.highlight} size="large" /></View>;
 
   const m = MODES[mode];
   async function act(a: 'pass' | 'like' | 'spark') {

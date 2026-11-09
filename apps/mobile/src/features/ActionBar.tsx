@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { colors } from '@/design/theme';
+import { useTheme } from '@/lib/theme';
 
 const B = ({ icon, color, size = 28, big, onPress, label, disabled }: { icon: string; color: string; size?: number; big?: boolean; onPress: () => void; label: string; disabled?: boolean }) => (
   <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityLabel={label} hitSlop={8}
@@ -11,12 +12,13 @@ const B = ({ icon, color, size = 28, big, onPress, label, disabled }: { icon: st
 
 /** The four actions from the reference: rewind, pass, like, spark. All free and unlimited. */
 export function ActionBar({ onRewind, onPass, onLike, onSpark, canRewind, busy }: { onRewind?: () => void; onPass: () => void; onLike: () => void; onSpark: () => void; canRewind?: boolean; busy?: boolean }) {
+  const th = useTheme();
   return (
     <View style={st.row}>
       {onRewind ? <B icon="refresh" color={colors.textMuted} size={22} onPress={onRewind} label="Rewind" disabled={!canRewind || busy} /> : null}
       <B icon="close" color={colors.coral} big onPress={onPass} label="Pass" disabled={busy} />
       <B icon="heart" color={colors.text} big onPress={onLike} label="Like" disabled={busy} />
-      <B icon="flash" color={colors.violet} size={24} onPress={onSpark} label="Spark" disabled={busy} />
+      <B icon="flash" color={th.highlight} size={24} onPress={onSpark} label="Spark" disabled={busy} />
     </View>
   );
 }

@@ -1,3 +1,5 @@
+> **Newest handoff: `docs/HANDOFF_WAYPOINT.md`** (v12 checkpoint, includes a kickoff prompt for a fresh chat). This file is the older, longer reference.
+
 # SideQuest: handover notes for a fresh session
 
 (See also the paste-ready prompt the previous session gave the owner. This file is the same information kept with the code.)
