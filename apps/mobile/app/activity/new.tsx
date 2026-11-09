@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { Pressable } from 'react-native';
 import { ACTIVITY_CATEGORIES } from '@sidequest/shared';
@@ -9,8 +8,10 @@ import { colors, spacing } from '@/design/theme';
 import { AppText, Button, Card, Chip, ErrorText, Row, Screen, Spacer, TextField, Wrap } from '@/design/ui';
 import { TimePicker } from '@/features/TimePicker';
 import { createActivity } from '@/lib/plans';
+import { getApproxLocation } from '@/lib/location';
+import { withFeature } from '@/features/NotInVibe';
 
-export default function NewActivity() {
+function NewActivity() {
   const router = useRouter();
   const [f, setF] = useState({ title: '', category: null as string | null, description: '', startsAt: null as Date | null, area: '', venue: '', capacity: null as number | null });
   const [busy, setBusy] = useState(false); const [error, setError] = useState<string | null>(null);
@@ -18,7 +19,7 @@ export default function NewActivity() {
   async function submit() {
     setError(null);
     let loc: { lat: number; lng: number } | null = null;
-    try { const p = await Location.getForegroundPermissionsAsync(); if (p.status === 'granted') { const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }); loc = { lat: pos.coords.latitude, lng: pos.coords.longitude }; } } catch { /* area text is enough */ }
+    { const o = await getApproxLocation({ ask: false }); if (o.reason === 'granted' && o.lat != null && o.lng != null) loc = { lat: o.lat, lng: o.lng }; }   // area text is enough when this is not available
     const built = buildActivityPayload(f, new Date(), loc);
     if (!built.ok) { setError(built.error); return; }
     setBusy(true);
@@ -54,3 +55,4 @@ export default function NewActivity() {
     </Screen>
   );
 }
+export default withFeature('activities', NewActivity);

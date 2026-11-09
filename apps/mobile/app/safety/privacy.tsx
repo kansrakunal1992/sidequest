@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AppText, Button, Card, ErrorText, Screen, Spacer } from '@/design/ui';
+import { DeviceStatus } from '@/features/DeviceStatus';
 import { ToggleRow } from '@/features/SafetyBits';
 import { db } from '@/lib/db';
 import { useSession } from '@/lib/session';
@@ -42,6 +43,8 @@ export default function Privacy() {
         <Spacer h={10} />
         <Button label={paused ? 'Resume my account' : 'Pause my account'} kind={paused ? 'primary' : 'secondary'} loading={busy} onPress={() => void run(async () => { if (paused) await db.resumeAccount(); else await db.pauseAccount(); await refreshProfile(); })} />
       </Card>
+      <Spacer />
+      <DeviceStatus />
     </Screen>
   );
 }

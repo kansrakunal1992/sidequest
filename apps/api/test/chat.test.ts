@@ -79,7 +79,7 @@ test('HTTP: webhook needs its secret; chat-media route and config route behave',
   const url = await post('/v1/chat-media/url', 'b', { messageId: MID }); assert.equal(url.status, 200); assert.equal((await url.json()).expiresInSeconds, 300);
   assert.equal((await post('/v1/chat-media/url', 'b', { messageId: 'x' })).status, 404);
   const cfg = await fetch(`${base}/v1/config`, { headers: { authorization: 'Bearer a' } });
-  assert.deepEqual(await cfg.json(), { calls: false, photos: false, chatImages: true, exports: false });
+  assert.deepEqual(await cfg.json(), { calls: false, photos: false, chatImages: true, exports: false, push: false });
   await new Promise<void>((r) => server.close(() => r()));
   const off = createServer(createHandler({ invites: w.svc, store: w.store, clock: w.clock, callsEnabled: false, livekit: null, verifyToken: async () => ({ sub: A }) }));
   await new Promise<void>((r) => off.listen(0, '127.0.0.1', r));

@@ -10,6 +10,7 @@ import { OpenCallsTab } from '@/features/OpenCallsTab';
 import { PeopleTab } from '@/features/PeopleTab';
 import { likesSummary } from '@/lib/discovery';
 import { useModes } from '@/lib/modes';
+import { useFeature } from '@/lib/theme';
 
 type Tab = 'people' | 'calls' | 'activities';
 export default function Discover() {
@@ -19,6 +20,9 @@ export default function Discover() {
   const [sheet, setSheet] = useState(false);
   const [likes, setLikes] = useState(0);
   const m = current ? MODES[current] : null;
+  const hasCalls = useFeature('open_calls'), hasActivities = useFeature('activities');
+  const options: { id: Tab; label: string }[] = [{ id: 'people', label: 'People' }, ...(hasCalls ? [{ id: 'calls' as const, label: 'Open Calls' }] : []), ...(hasActivities ? [{ id: 'activities' as const, label: 'Activities' }] : [])];
+  const shown: Tab = options.some((o) => o.id === tab) ? tab : 'people';   // switching to a vibe without this tab falls back to People
 
   const refreshBadge = useCallback(() => { if (current) likesSummary(current).then((s) => setLikes(s.likes)).catch(() => {}); }, [current]);
   useEffect(() => { refreshBadge(); const t = setInterval(refreshBadge, 60_000); return () => clearInterval(t); }, [refreshBadge]);
@@ -41,9 +45,8 @@ export default function Discover() {
           </Pressable>
         </Row>
       </Row>
-      <Segmented<Tab> value={tab} onChange={setTab} options={[{ id: 'people', label: 'People' }, { id: 'calls', label: 'Open Calls' }, { id: 'activities', label: 'Activities' }]} />
-      <Spacer h={spacing.md} />
-      {tab === 'people' ? <PeopleTab /> : tab === 'calls' ? <OpenCallsTab /> : <ActivitiesTab />}
+      {options.length > 1 ? <><Segmented<Tab> value={shown} onChange={setTab} options={options} /><Spacer h={spacing.md} /></> : null}
+      {shown === 'people' ? <PeopleTab /> : shown === 'calls' ? <OpenCallsTab /> : <ActivitiesTab />}
       <ModeSheet visible={sheet} onClose={() => setSheet(false)} />
     </Screen>
   );

@@ -17,7 +17,7 @@ export default function Welcome() {
           <AppText variant="display" accessibilityRole="header">SideQuest</AppText>
           <AppText variant="title" muted>People, plans, possibilities.</AppText>
           <Spacer h={spacing.xl} />
-          <AppText>The social playground for adults: for dating, hookups, friendships and everything in between.</AppText>
+          <AppText>The social playground for adults: for dating, casual connections, friendships and everything in between.</AppText>
           <Spacer h={spacing.lg} />
           <Pill label="100% Free. Forever." />
         </View>

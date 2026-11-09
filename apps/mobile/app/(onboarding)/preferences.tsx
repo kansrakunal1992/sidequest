@@ -5,6 +5,7 @@ import { colors } from '@/design/theme';
 import { AppText, Button, Card, Chip, Row, Spacer, Wrap } from '@/design/ui';
 import { StepFrame } from '@/features/StepFrame';
 import { finishOnboarding } from '@/lib/finish-onboarding';
+import { enablePush } from '@/lib/push';
 import { useOnboarding } from '@/lib/onboarding-context';
 import { useSession } from '@/lib/session';
 import { useState } from 'react';
@@ -41,6 +42,9 @@ export default function Preferences() {
     if (!session) throw new Error('Please sign in again.');
     try { await finishOnboarding(state, session.user.id, setProgress); }
     finally { setProgress(null); }
+    // The right moment to ask for notifications: the profile is saved, and the next thing people want is to hear when someone replies.
+    // enablePush never throws, and saying no here changes nothing; the Privacy screen explains how to turn them on later.
+    await enablePush(session.user.id, true).catch(() => 'denied');
     await refreshProfile();   // the Gate then moves you into the app
   }
   return (

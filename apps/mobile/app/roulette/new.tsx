@@ -8,9 +8,10 @@ import { TimePicker } from '@/features/TimePicker';
 import { db } from '@/lib/db';
 import { useModes } from '@/lib/modes';
 import { useAction } from '@/lib/use-async';
+import { withFeature } from '@/features/NotInVibe';
 
 const ENERGY_LABEL: Record<Energy, string> = { chill: 'Chill', flirty: 'Flirty', adventurous: 'Adventurous', social: 'Social' };
-export default function NewRoulette() {
+function NewRoulette() {
   const router = useRouter();
   const { active, current } = useModes();
   const [modeId, setModeId] = useState<string | null>(current ?? null);
@@ -52,3 +53,4 @@ export default function NewRoulette() {
     </Screen>
   );
 }
+export default withFeature('roulette', NewRoulette);

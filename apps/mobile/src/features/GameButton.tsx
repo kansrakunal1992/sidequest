@@ -6,11 +6,13 @@ import { GAME_KINDS, GAME_LABELS } from '@sidequest/shared';
 import { colors } from '@/design/theme';
 import { AppText, Button, Card, ErrorText, Spacer } from '@/design/ui';
 import { db } from '@/lib/db';
+import { useFeature } from '@/lib/theme';
 import { friendlyError } from '@/core/errors';
 
 /** The Play button in a direct chat: opens the game that is already running, or lets the person pick one to start. */
 export function GameButton({ conversationId }: { conversationId: string }) {
   const router = useRouter();
+  const hasGames = useFeature('games');
   const [open, setOpen] = useState(false); const [busy, setBusy] = useState(false); const [error, setError] = useState<string | null>(null);
   const go = (sessionId: string) => { setOpen(false); router.push({ pathname: '/game/[id]', params: { id: sessionId, conversationId } } as never); };
   async function press() {
@@ -21,6 +23,7 @@ export function GameButton({ conversationId }: { conversationId: string }) {
     setBusy(true); setError(null);
     try { go(await db.startGame(conversationId, kind)); } catch (e) { setError(friendlyError(e)); } finally { setBusy(false); }
   }
+  if (!hasGames) return null;
   return (
     <>
       <Pressable onPress={() => void press()} accessibilityRole="button" accessibilityLabel="Play a game" hitSlop={10}><Ionicons name="game-controller" size={22} color={colors.text} /></Pressable>

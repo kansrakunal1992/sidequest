@@ -101,7 +101,7 @@ test('Post a double date: without a full pair it explains what to do instead of 
 
 // ------------------------------------------------------------------ safety
 test('Safety hub: shows the friend code formatted, the sections, and how many check-ins wait', async () => {
-  const p = await mount('safety', { rpc: { my_friend_code: 'ab12cd34', my_checkins: [{ id: 'k1', source_type: 'invite', source_id: 's', check_in_at: FUTURE, status: 'prompted', contact_label: 'Sis' }] } });
+  const p = await mount('safety', { mode: 'serious_dating', rpc: { my_friend_code: 'ab12cd34', my_checkins: [{ id: 'k1', source_type: 'invite', source_id: 's', check_in_at: FUTURE, status: 'prompted', contact_label: 'Sis' }] } });
   await p.waitFor('AB12 CD34');
   for (const t of ['Trusted contacts and check-ins', 'Wingperson', 'Together', 'Privacy and pause', 'Blocked people', 'Your data', 'Share my code', 'Get a new code', '1 waiting']) assert.ok(p.has(t), t);
   await p.click('Wingperson'); assert.deepEqual(p.nav.at(-1), { k: 'push', x: '/safety/wing' });
@@ -130,7 +130,7 @@ test('Wingperson: suggestions can be accepted, an invite needs a code and at lea
 });
 test('Together: invited partner can agree and choose sharing; turning "link" off switches the rest off', async () => {
   const couple = { couple_id: 'cp1', partner_id: 'p', partner_name: 'Kim', i_am_a: false, a_link: true, a_shared_profile: false, a_discovery: false, b_link: false, b_shared_profile: false, b_discovery: false, paused: false };
-  const p = await mount('together', { rpc: { my_couple: [couple], set_couple_consent: null } });
+  const p = await mount('together', { mode: 'serious_dating', rpc: { my_couple: [couple], set_couple_consent: null } });
   await p.waitFor('You and Kim'); assert.ok(p.has('Kim asked to link'));
   const toggles = () => [...p.doc.querySelectorAll<HTMLInputElement>('input[type=checkbox]')];
   assert.equal(toggles().length, 4); assert.equal(toggles()[0]!.checked, false);
@@ -139,7 +139,7 @@ test('Together: invited partner can agree and choose sharing; turning "link" off
   noErrors(p);
 });
 test('Together: with no link yet, it asks for the partner\'s friend code', async () => {
-  const p = await mount('together', { rpc: { my_couple: [], create_couple_link: 'cp9' } });
+  const p = await mount('together', { mode: 'serious_dating', rpc: { my_couple: [], create_couple_link: 'cp9' } });
   await p.waitFor("Your partner's friend code"); await p.type("Your partner's friend code", 'aa11 bb22'); await p.click('Send link request');
   assert.deepEqual(p.rpcCalls('create_couple_link')[0].args, { p_code: 'AA11BB22' });
 });
@@ -212,4 +212,63 @@ test('Legal links: the safety hub shows Terms, Privacy Policy and web deletion, 
   await p.click('Privacy Policy'); await p.click('Terms and Community Guidelines');
   assert.deepEqual(p.opened(), ['https://api.example.test/privacy', 'https://api.example.test/terms']);
   noErrors(p);
+});
+
+// ------------------------------------------------------------------ per-vibe features
+test('Vibe features: the Circles tab shows only the panels the vibe has, and a vibe with none says so kindly', async () => {
+  const ad = await mount('circles', { mode: 'adventures', rpc: { circles_feed: [] } });
+  await ad.waitFor('No circles here yet');
+  assert.ok(ad.has('Social Roulette') && !ad.has('Double dates'), 'Adventures: circles and roulette, no double dates');
+  const dating = await mount('circles', { mode: 'serious_dating', rpc: { double_dates_feed: [], my_teams: [] } });
+  await dating.waitFor('No double dates yet');
+  assert.ok(!dating.has('Social Roulette') && dating.rpcCalls('circles_feed').length === 0, 'Dating: only double dates, so no tab strip and no circles request');
+  const casual = await mount('circles', { mode: 'hookups' });
+  await casual.waitFor('is not part of the Casual vibe'); assert.ok(casual.has('Switch vibe'));
+  noErrors(casual);
+});
+test('Vibe features: the safety hub hides Together where the vibe has none; deep links to it get the friendly message', async () => {
+  const p = await mount('safety', { mode: 'friendship', rpc: { my_friend_code: 'ab12cd34', my_checkins: [] } });
+  await p.waitFor('AB12 CD34'); assert.ok(p.has('Wingperson') && !p.has('Together'));
+  const q = await mount('together', { mode: 'friendship', rpc: { my_couple: [] } });
+  await q.waitFor('Together is not part of the Friendship vibe'); assert.equal(q.rpcCalls('my_couple').length, 0, 'nothing is requested for a screen the vibe does not have');
+  const r = await mount('together', { mode: null, rpc: { my_couple: [] } });
+  await r.waitFor("Your partner's friend code");
+});
+test('Vibe features: every vibe has a screen to land on (no blank Circles tab, no vibe where the hub is empty)', async () => {
+  for (const mode of ['serious_dating', 'friendship', 'post_marital', 'experimentation', 'adventures']) {
+    const p = await mount('safety', { mode, rpc: { my_friend_code: 'ab12cd34', my_checkins: [] } });
+    await p.waitFor('Privacy and pause'); assert.ok(p.has('Trusted contacts and check-ins') && p.has('Blocked people'), mode);
+  }
+});
+
+// ------------------------------------------------------------------ notifications and location status
+test('Privacy: shows notification and location status in plain words, with the next step', async () => {
+  const p = await mount('privacy', { tables: { profiles: [{}] }, globals: { __pushPermission: 'blocked_in_settings' } });
+  await p.waitFor('Notifications'); await p.waitFor('Permission: blocked');
+  assert.ok(p.has('Location') && p.has('Update my location') && p.has('Send test notification') && p.has('Open Settings'));
+  assert.ok(p.has('Android will not show its permission box again'), 'the one next step for a blocked permission');
+  await p.click('Open Settings'); assert.ok(p.calls.some((c) => c.kind === 'openSettings'));
+  noErrors(p);
+});
+test('Privacy: "Send test notification" says what happened, including a server with no Firebase key', async () => {
+  const ok = await mount('privacy', { tables: { profiles: [{}] } });
+  await ok.waitFor('Send test notification'); await ok.click('Send test notification');
+  await ok.waitFor('Test sent'); assert.ok(ok.calls.some((c) => c.name === 'pushTest'));
+  const off = await mount('privacy', { tables: { profiles: [{}] }, globals: { __pushTest: { tokens: 1, sent: 0, error: 'not_configured' }, __pushConfigured: false } });
+  await off.waitFor('Send test notification'); await off.settle(100); assert.ok(off.has('Server ready to send: no'));
+  await off.click('Send test notification'); await off.waitFor('FCM_SERVICE_ACCOUNT_JSON');
+});
+test('Privacy: "Update my location" saves the rounded position through the database function; a refusal explains why', async () => {
+  const p = await mount('privacy', { tables: { profiles: [{}] }, rpc: { set_approx_location: null } });
+  await p.waitFor('Update my location'); await p.click('Update my location'); await p.waitFor('Location updated');
+  assert.deepEqual(p.rpcCalls('set_approx_location')[0].args, { p_lat: 28.46, p_lng: 77.03 });
+  const q = await mount('privacy', { tables: { profiles: [{}] }, rpc: { set_approx_location: null }, globals: { __locResult: { reason: 'services_off', lat: null, lng: null, city: null } } });
+  await q.waitFor('Update my location'); await q.click('Update my location');
+  await q.waitFor('Location is switched off'); assert.equal(q.rpcCalls('set_approx_location').length, 0);
+  noErrors(q);
+});
+test('Privacy: a typed city is the manual fallback and goes through the same function', async () => {
+  const p = await mount('privacy', { tables: { profiles: [{}] }, rpc: { set_approx_location: null } });
+  await p.waitFor('Use this city'); await p.type('Or use a city', 'Kolkata'); await p.click('Use this city');
+  await p.waitFor('Location updated'); assert.deepEqual(p.rpcCalls('set_approx_location')[0].args, { p_lat: 22.57, p_lng: 88.36 });
 });

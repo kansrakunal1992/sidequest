@@ -3,18 +3,23 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import type { StyleProp, TextInputProps, TextStyle, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, fontSizes, gradients, radius, spacing } from './theme';
+import { onAccentFor } from '@sidequest/shared';
+import { useTheme } from '@/lib/theme';
+import { colors, fontSizes, radius, spacing } from './theme';
 
 // ---------- Screen ----------
 export function Screen({ children, scroll = true, padded = true, footer }: { children: ReactNode; scroll?: boolean; padded?: boolean; footer?: ReactNode }) {
+  const t = useTheme();
   const body = scroll
     ? <ScrollView contentContainerStyle={[{ flexGrow: 1 }, padded && s.pad]} keyboardShouldPersistTaps="handled">{children}</ScrollView>
     : <View style={[{ flex: 1 }, padded && s.pad]}>{children}</View>;
   return (
-    <SafeAreaView style={s.screen} edges={['top', 'bottom', 'left', 'right']}>
-      {body}
-      {footer ? <View style={s.footer}>{footer}</View> : null}
-    </SafeAreaView>
+    <LinearGradient colors={[t.bgTop, t.bg]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 0.45 }} style={[s.screen, { backgroundColor: t.bg }]}>
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom', 'left', 'right']}>
+        {body}
+        {footer ? <View style={s.footer}>{footer}</View> : null}
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
@@ -36,15 +41,17 @@ export const ErrorText = ({ children }: { children: ReactNode }) => <Text access
 // ---------- Buttons ----------
 export function Button({ label, onPress, kind = 'primary', loading, disabled, icon }:
   { label: string; onPress: () => void; kind?: 'primary' | 'secondary' | 'ghost'; loading?: boolean; disabled?: boolean; icon?: ReactNode }) {
+  const t = useTheme();
   const off = disabled || loading;
-  const content = loading ? <ActivityIndicator color={colors.text} /> : <View style={s.row}>{icon}<Text style={s.btnLabel}>{label}</Text></View>;
+  const labelColor = kind === 'primary' ? t.onAccent : colors.text;
+  const content = loading ? <ActivityIndicator color={labelColor} /> : <View style={s.row}>{icon}<Text style={[s.btnLabel, { color: labelColor }]}>{label}</Text></View>;
   return (
     <Pressable onPress={off ? undefined : onPress} accessibilityRole="button" accessibilityState={{ disabled: !!off, busy: !!loading }}
       style={({ pressed }) => [{ opacity: off ? 0.45 : pressed ? 0.85 : 1 }]}>
       {kind === 'primary' ? (
-        <LinearGradient colors={gradients.cta} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.btn}>{content}</LinearGradient>
+        <LinearGradient colors={[t.accent, t.accent2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.btn}>{content}</LinearGradient>
       ) : (
-        <View style={[s.btn, kind === 'secondary' ? s.btnSecondary : s.btnGhost]}>{content}</View>
+        <View style={[s.btn, kind === 'secondary' ? [s.btnSecondary, { backgroundColor: t.surfaceRaised, borderColor: t.border }] : s.btnGhost]}>{content}</View>
       )}
     </Pressable>
   );
@@ -52,25 +59,34 @@ export function Button({ label, onPress, kind = 'primary', loading, disabled, ic
 
 // ---------- Chips, pills, cards ----------
 export function Chip({ label, selected, onPress, accent }: { label: string; selected?: boolean; onPress?: () => void; accent?: string }) {
+  const t = useTheme();
+  const fill = accent ?? t.highlight;
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: !!selected }}
-      style={[s.chip, selected && { backgroundColor: accent ?? colors.primary, borderColor: accent ?? colors.primary }]}>
-      <Text style={[s.chipLabel, selected && { color: '#fff', fontWeight: '700' }]}>{label}</Text>
+      style={[s.chip, { backgroundColor: t.surface, borderColor: t.border }, selected && { backgroundColor: fill, borderColor: fill }]}>
+      <Text style={[s.chipLabel, selected && { color: onAccentFor(fill, fill), fontWeight: '700' }]}>{label}</Text>
     </Pressable>
   );
 }
-export const Pill = ({ label }: { label: string }) => <View style={s.pill}><Text style={s.pillLabel}>{label}</Text></View>;
-export const Card = ({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) => <View style={[s.card, style]}>{children}</View>;
+export function Pill({ label }: { label: string }) {
+  const t = useTheme();
+  return <View style={[s.pill, { backgroundColor: t.highlight }]}><Text style={[s.pillLabel, { color: onAccentFor(t.highlight, t.highlight) }]}>{label}</Text></View>;
+}
+export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const t = useTheme();
+  return <View style={[s.card, { backgroundColor: t.surface, borderColor: t.border }, style]}>{children}</View>;
+}
 export const Row = ({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) => <View style={[s.row, style]}>{children}</View>;
 export const Wrap = ({ children }: { children: ReactNode }) => <View style={s.wrap}>{children}</View>;
 export const Spacer = ({ h = spacing.lg }: { h?: number }) => <View style={{ height: h }} />;
 
 // ---------- Text field ----------
 export function TextField({ label, error, hint, style, ...rest }: { label: string; error?: string | null; hint?: string } & TextInputProps & { style?: StyleProp<TextStyle> }) {
+  const t = useTheme();
   return (
     <View style={{ marginBottom: spacing.lg }}>
       <Text style={s.fieldLabel}>{label}</Text>
-      <TextInput placeholderTextColor={colors.textMuted} accessibilityLabel={label} {...rest} style={[s.input, error ? { borderColor: colors.coral } : null, style]} />
+      <TextInput placeholderTextColor={colors.textMuted} accessibilityLabel={label} {...rest} style={[s.input, { backgroundColor: t.surface, borderColor: t.border }, error ? { borderColor: colors.coral } : null, style]} />
       {hint && !error ? <Text style={s.hint}>{hint}</Text> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
     </View>
@@ -79,17 +95,19 @@ export function TextField({ label, error, hint, style, ...rest }: { label: strin
 
 // ---------- Progress and segmented tabs ----------
 export function ProgressBar({ step, total }: { step: number; total: number }) {
+  const t = useTheme();
   return (
-    <View style={s.progressTrack} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: total, now: step }}>
-      <LinearGradient colors={gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 4, width: `${Math.round((step / total) * 100)}%`, borderRadius: 2 }} />
+    <View style={[s.progressTrack, { backgroundColor: t.border }]} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: total, now: step }}>
+      <LinearGradient colors={[t.accent, t.accent2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 4, width: `${Math.round((step / total) * 100)}%`, borderRadius: 2 }} />
     </View>
   );
 }
 export function Segmented<T extends string>({ options, value, onChange }: { options: { id: T; label: string }[]; value: T; onChange: (v: T) => void }) {
+  const t = useTheme();
   return (
-    <View style={s.segment}>
+    <View style={[s.segment, { backgroundColor: t.surface }]}>
       {options.map((o) => (
-        <Pressable key={o.id} onPress={() => onChange(o.id)} accessibilityRole="tab" accessibilityState={{ selected: o.id === value }} style={[s.segItem, o.id === value && s.segActive]}>
+        <Pressable key={o.id} onPress={() => onChange(o.id)} accessibilityRole="tab" accessibilityState={{ selected: o.id === value }} style={[s.segItem, o.id === value && { backgroundColor: t.surfaceRaised }]}>
           <Text style={[s.segLabel, o.id === value && { color: colors.text, fontWeight: '700' }]}>{o.label}</Text>
         </Pressable>
       ))}

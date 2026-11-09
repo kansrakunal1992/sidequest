@@ -12,7 +12,7 @@ import { adminHeaders, adminPageHtml, newNonce } from './admin-page.ts';
 import { deleteAccountHtml, pageHeaders, privacyHtml, termsHtml } from './public-pages.ts';
 import type { LegalConfig } from './public-pages.ts';
 import type { AdminPhotoAccess } from './admin-photos.ts';
-import type { Notifier } from './notifications.ts';
+import type { Notifier, PushTester } from './notifications.ts';
 import type { PhotoAccess } from './photo-access.ts';
 import type { AgeVerifier, PhotoService } from './photos.ts';
 import { isUuid, parseCreateInvite, parseReschedule } from './validate.ts';
@@ -37,6 +37,8 @@ export interface AppDeps {
   /** Public privacy policy, terms and web account-deletion page. Off (404) unless set. */
   legal?: LegalConfig | null;
   notifier?: Notifier | null;
+  /** Powers POST /v1/push/test and the `push` flag in /v1/config. */
+  push?: PushTester | null;
   /** Shared secret for the Supabase database webhook. Without it the webhook route is disabled. */
   webhookSecret?: string | null;
   ageVerifier?: AgeVerifier | null;
@@ -78,7 +80,7 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
 }
 
 export function createHandler(d: AppDeps): (req: IncomingMessage, res: ServerResponse) => void {
-  const userLimiter = new WindowLimiter(), ipLimiter = new WindowLimiter();
+  const userLimiter = new WindowLimiter(), ipLimiter = new WindowLimiter(), testLimiter = new WindowLimiter();
   const log = d.log ?? (() => {});
 
   const send = (res: ServerResponse, status: number, body: unknown, extra: Record<string, string> = {}) => {
@@ -154,7 +156,15 @@ export function createHandler(d: AppDeps): (req: IncomingMessage, res: ServerRes
       return send(res, 200, { invites: (await d.invites.list(uid, box)).map(inviteDto) });
     }
 
-    if (path === '/v1/config' && method === 'GET') return send(res, 200, { calls: d.callsEnabled, photos: !!d.photoAccess, chatImages: !!d.chatMedia, exports: !!d.exports });
+    if (path === '/v1/config' && method === 'GET') return send(res, 200, { calls: d.callsEnabled, photos: !!d.photoAccess, chatImages: !!d.chatMedia, exports: !!d.exports, push: !!d.push?.configured });
+    if (path === '/v1/push/test' && method === 'POST') {
+      await readJson(req);
+      // 5 tests per 10 minutes per person: enough to troubleshoot, too few to be used as a spam cannon.
+      const lim = testLimiter.check(uid, nowMs, 5, 600_000);
+      if (!lim.ok) return send(res, 429, { error: 'rate_limited' }, { 'retry-after': String(lim.retryAfterS) });
+      if (!d.push) return send(res, 200, { tokens: 0, sent: 0, error: 'not_configured' });
+      return send(res, 200, await d.push.test(uid));
+    }
     if (path === '/v1/admin/photo-url' && method === 'POST') {
       if (!d.adminPhotos) return send(res, 404, { error: 'not_found' });
       return sendResult(res, await d.adminPhotos.urlFor(uid, ((await readJson(req)) as { photoId?: unknown }).photoId), 200, (v) => v);

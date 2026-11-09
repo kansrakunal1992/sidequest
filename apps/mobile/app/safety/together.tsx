@@ -5,8 +5,9 @@ import { AppText, Button, Card, ErrorText, Screen, Spacer, TextField } from '@/d
 import { ToggleRow } from '@/features/SafetyBits';
 import { db } from '@/lib/db';
 import { useAction, useAsync } from '@/lib/use-async';
+import { withFeature } from '@/features/NotInVibe';
 
-export default function Together() {
+function Together() {
   const couple = useAsync(async () => (await db.myCouple())[0] ?? null, []);
   const { run, busy, error } = useAction();
   const [code, setCode] = useState('');
@@ -44,3 +45,4 @@ export default function Together() {
     </Screen>
   );
 }
+export default withFeature('together', Together);

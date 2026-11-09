@@ -4,7 +4,7 @@ import { createHandler } from './app.ts';
 import { loadConfig } from './config.ts';
 import { InviteService } from './invite-service.ts';
 import { createJwksProvider, verifyJwt } from './jwt.ts';
-import { NoopPushSender, createNotifier } from './notifications.ts';
+import { NoopPushSender, createNotifier, createPushTester } from './notifications.ts';
 import type { PushSender } from './notifications.ts';
 import { PgStore } from './pg-store.ts';
 import { ChatMediaAccess } from './chat.ts';
@@ -24,6 +24,7 @@ const clock = () => new Date();
 const sender: PushSender = cfg.fcmServiceAccountJson ? new FcmSender(JSON.parse(cfg.fcmServiceAccountJson)) : new NoopPushSender();
 if (!cfg.fcmServiceAccountJson) log('FCM_SERVICE_ACCOUNT_JSON not set: push notifications are disabled (in-app notifications still work)');
 const notifier = createNotifier({ store, sender, clock, log });
+const push = createPushTester({ store, sender, configured: !!cfg.fcmServiceAccountJson, log });
 const invites = new InviteService({ store, clock, notify: async (n) => { await notifier.send(n); } });
 
 const signer = cfg.serviceRoleKey ? new SupabaseStorageSigner(cfg.supabaseUrl, cfg.serviceRoleKey) : null;
@@ -46,7 +47,7 @@ const verifyToken = (token: string) =>
 
 const server = createServer(createHandler({ invites, store, verifyToken, clock, callsEnabled: cfg.callsEnabled, livekit: cfg.livekit, corsOrigin: cfg.corsOrigin, photos, photoAccess, chatMedia, exports: exportAccess,
   legal: cfg.legalName && cfg.contactEmail ? { legalName: cfg.legalName, contactEmail: cfg.contactEmail, childSafetyEmail: cfg.childSafetyEmail ?? cfg.contactEmail, supabaseUrl: cfg.supabaseUrl, anonKey: cfg.anonKey, appName: cfg.appName } : null, admin: cfg.anonKey ? { supabaseUrl: cfg.supabaseUrl, anonKey: cfg.anonKey } : null,
-  adminPhotos: signer && cfg.anonKey ? new AdminPhotoAccess(store, signer) : null, notifier, webhookSecret: cfg.webhookSecret, ageVerifier: null, log }));
+  adminPhotos: signer && cfg.anonKey ? new AdminPhotoAccess(store, signer) : null, notifier, push, webhookSecret: cfg.webhookSecret, ageVerifier: null, log }));
 server.listen(cfg.port, () => log(`api listening on ${cfg.port}`));
 
 const stop = () => { log('shutting down'); server.close(() => pool.end().finally(() => process.exit(0))); setTimeout(() => process.exit(1), 10_000).unref(); };

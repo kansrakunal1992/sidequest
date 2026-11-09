@@ -141,6 +141,6 @@ test('friendly errors never blame the person and never reveal blocks', () => {
 // ---------- brand tiles ----------
 test('mode tiles cover every mode exactly once, in the brand order', () => {
   assert.deepEqual([...MODE_TILES.map((t) => t.id)].sort(), [...MODE_IDS].sort());
-  assert.deepEqual(MODE_TILES.map((t) => MODES[t.id].label), ['Dating', 'Hookups', 'Friendship', 'Adventures', 'Post-Marital', 'Experiment']);
+  assert.deepEqual(MODE_TILES.map((t) => MODES[t.id].label), ['Dating', 'Casual', 'Friendship', 'Adventures', 'Post-Marital', 'Explore']);
   assert.equal(Object.keys(ENERGY_LABELS).length, 4);
 });

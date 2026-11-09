@@ -10,6 +10,10 @@ import { friendlyError } from '@/core/api-client';
 import { colors, radius, spacing } from '@/design/theme';
 import { AppText, Chip, ErrorText, Row, Wrap } from '@/design/ui';
 import { GameButton } from '@/features/GameButton';
+import { MessageWarningBanner, TrustCard } from '@/features/TrustBits';
+import { VERIFICATION_ENABLED, incomingWarnings, parseTrust, trustCard } from '@/core/trust-ui';
+import { db } from '@/lib/db';
+import { blockUser } from '@/lib/discovery';
 import { SafetyMenu } from '@/features/SafetyMenu';
 import { api } from '@/lib/api';
 import { loadMessages, markRead, revealMedia, sendImage, sendText, subscribeToThread } from '@/lib/chat';
@@ -48,6 +52,7 @@ export default function Thread() {
   const [menu, setMenu] = useState(false);
   const [receipt, setReceipt] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
+  const [trust, setTrust] = useState<ReturnType<typeof parseTrust>>(null);
   const [more, setMore] = useState(true);
   const msgsRef = useRef(msgs); msgsRef.current = msgs;
 
@@ -71,12 +76,21 @@ export default function Thread() {
   }, [id, me, refreshUnread]);
 
   const direct = info?.kind === 'direct';
+  // Facts about the other account. If the function is missing (migration 0015 not run yet) or fails, the card is simply not shown.
+  useEffect(() => { if (id && direct) void db.chatTrust(id).then((r) => setTrust(parseTrust(r))).catch(() => setTrust(null)); }, [id, direct]);
+  const warnings = useMemo(() => incomingWarnings(msgs, me), [msgs, me]);
+  const card = useMemo(() => trustCard(trust), [trust]);
   const gate = useMemo(() => (direct ? sendGate(msgs, me) : { allowed: true, hint: null }), [direct, msgs, me]);
   const lastMine = [...msgs].reverse().find((m) => m.senderId === me);
   const label = direct ? receiptLabel(lastMine, receipt) : null;
   function reportMessage(m: ChatMessage) {
     Alert.alert('Report this message?', 'Our team will take a look. The sender is not told who reported it.', [{ text: 'Cancel', style: 'cancel' },
       { text: 'Report', onPress: () => void reportContent(me, 'message', m.id, m.senderId, 'Reported from a chat').then(() => Alert.alert('Thank you', 'We will review it.')).catch(() => setError('Could not send the report.')) }]);
+  }
+
+  function blockSender(m: ChatMessage) {
+    Alert.alert('Block this person?', 'They are not told. The chat disappears from your list and they cannot contact you again. You can undo this in Safety and privacy.', [{ text: 'Cancel', style: 'cancel' },
+      { text: 'Block', style: 'destructive', onPress: () => void blockUser(me, m.senderId).then(() => router.back()).catch(() => setError('Could not block. Check your connection and try again.')) }]);
   }
 
   async function send() {
@@ -112,11 +126,12 @@ export default function Thread() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <Row style={st.header}>
         <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Back" hitSlop={12}><Ionicons name="chevron-back" size={26} color={colors.text} /></Pressable>
-        <View style={{ flex: 1 }}><Row><Text style={st.title}>{direct ? info.displayName : info.title ?? 'Group chat'}</Text>{direct && info.verified ? <Ionicons name="checkmark-circle" size={16} color={colors.cyan} /> : null}</Row></View>
+        <View style={{ flex: 1 }}><Row><Text style={st.title}>{direct ? info.displayName : info.title ?? 'Group chat'}</Text>{direct && info.verified && VERIFICATION_ENABLED ? <Ionicons name="checkmark-circle" size={16} color={colors.cyan} /> : null}</Row></View>
         {direct ? <Pressable onPress={() => router.push({ pathname: '/invite/new', params: { to: info.userId, mode: info.modeId, name: info.displayName } } as never)} accessibilityRole="button" accessibilityLabel="Send an invitation" hitSlop={10}><Ionicons name="calendar" size={22} color={colors.text} /></Pressable> : <Text style={{ color: colors.textMuted, fontSize: 12 }}>{info.memberCount} people</Text>}
         {direct ? <GameButton conversationId={id!} /> : null}
         {direct ? <Pressable onPress={() => setMenu(true)} accessibilityRole="button" accessibilityLabel="More" hitSlop={10}><Ionicons name="ellipsis-horizontal" size={22} color={colors.text} /></Pressable> : null}
       </Row>
+      {direct ? <TrustCard lines={card.lines} suspicious={card.suspicious} /> : null}
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <FlatList inverted data={inverted} keyExtractor={(m: ChatMessage) => m.id} onEndReached={() => void older()} onEndReachedThreshold={0.4} contentContainerStyle={{ padding: spacing.lg }}
           ListEmptyComponent={<View style={{ transform: [{ scaleY: -1 }] }}><AppText muted style={{ textAlign: 'center', marginTop: 24 }}>{direct ? `Say hi to ${info.displayName}. A few shared interests can start things off.` : 'Say hello to the group.'}</AppText></View>}
@@ -125,11 +140,17 @@ export default function Thread() {
             return (
               <View style={{ alignItems: mine ? 'flex-end' : 'flex-start', marginBottom: 6 }}>
                 {!direct && !mine ? <Text style={st.sender}>{names[item.senderId] ?? 'Someone'}</Text> : null}
+                {warnings.get(item.id) ? (
+                  <MessageWarningBanner warning={warnings.get(item.id)!} onReport={() => reportMessage(item)} onBlock={() => blockSender(item)}>
+                    {(hidden) => <View style={[st.bubble, st.theirs]}>{hidden ? <Text style={[st.text, { fontStyle: 'italic' }]}>Hidden. Tap Show anyway if you want to read it.</Text> : <Text style={st.text}>{item.body}</Text>}</View>}
+                  </MessageWarningBanner>
+                ) : (
                 <Pressable onLongPress={() => { if (!mine) reportMessage(item); }} delayLongPress={500} accessibilityHint={mine ? undefined : 'Long press to report this message'}>
                 <View style={[st.bubble, mine ? st.mine : st.theirs]}>
                   {item.mediaKind === 'image' ? <ImageBubble m={item} mine={mine} onError={setError} /> : <Text style={st.text}>{item.body}</Text>}
                 </View>
                 </Pressable>
+                )}
                 {index === inverted.findIndex((m) => m.senderId === me) && mine && label ? <Text style={st.receipt}>{label}</Text> : null}
               </View>
             );

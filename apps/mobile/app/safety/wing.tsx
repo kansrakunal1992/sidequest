@@ -8,8 +8,9 @@ import { ToggleRow } from '@/features/SafetyBits';
 import { db } from '@/lib/db';
 import { useModes } from '@/lib/modes';
 import { useAction, useAsync } from '@/lib/use-async';
+import { withFeature } from '@/features/NotInVibe';
 
-export default function Wing() {
+function Wing() {
   const { current } = useModes();
   const grants = useAsync(() => db.myWingGrants(), []);
   const suggestions = useAsync(() => db.myWingSuggestions(), []);
@@ -60,3 +61,4 @@ export default function Wing() {
     </Screen>
   );
 }
+export default withFeature('wingperson', Wing);

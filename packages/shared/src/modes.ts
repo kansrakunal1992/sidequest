@@ -41,7 +41,7 @@ export const MODES: Record<ModeId, ModeConfig> = {
     contact: { requiresMatchForChat: true, introInviteWithoutMatch: true, romanticAllowed: true },
   },
   hookups: {
-    id: 'hookups', label: 'Hookups', tagline: 'No strings',
+    id: 'hookups', label: 'Casual', tagline: 'Easygoing, low pressure',
     tint: '#692D4B', accent: '#FACC15',
     contact: { requiresMatchForChat: true, introInviteWithoutMatch: true, romanticAllowed: true },
   },
@@ -56,7 +56,7 @@ export const MODES: Record<ModeId, ModeConfig> = {
     contact: { requiresMatchForChat: true, introInviteWithoutMatch: true, romanticAllowed: true },
   },
   experimentation: {
-    id: 'experimentation', label: 'Experiment', tagline: 'Explore freely',
+    id: 'experimentation', label: 'Explore', tagline: 'Try something new',
     tint: '#3E2A43', accent: '#A855F7',
     contact: { requiresMatchForChat: true, introInviteWithoutMatch: false, romanticAllowed: true },
   },

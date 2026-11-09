@@ -13,6 +13,8 @@ async function call<T>(name: string, args?: Record<string, unknown>): Promise<T>
 const none = (): void => undefined;
 
 export const db = {
+  // location (the server rounds again; the phone has already rounded to about 1 km)
+  setApproxLocation: (lat: number, lng: number) => call<void>('set_approx_location', { p_lat: lat, p_lng: lng }).then(none),
   // circles
   circlesFeed: (scope: 'browse' | 'mine', category: string | null = null) => call<CircleRow[]>('circles_feed', { p_scope: scope, p_category: category }),
   createCircle: (p: Record<string, unknown>) => call<string>('create_circle', { p }),
@@ -73,6 +75,8 @@ export const db = {
   myDataRequests: () => call<DataRequestRow[]>('my_data_requests'),
   submitAppeal: (message: string) => call<string>('submit_appeal', { p_message: message }),
   myBlocks: () => call<BlockRow[]>('my_blocks'),
+  // trust: plain facts about the other person in a direct chat (needs migration 0015)
+  chatTrust: (conv: string) => call<unknown>('chat_trust', { p_conv: conv }),
   // games
   activeGame: (conv: string) => call<ActiveGameRow[]>('active_game', { p_conv: conv }),
   startGame: (conv: string, kind: string) => call<string>('start_game', { p_conv: conv, p_kind: kind }),

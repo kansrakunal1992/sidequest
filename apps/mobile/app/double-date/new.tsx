@@ -7,8 +7,9 @@ import { TimePicker } from '@/features/TimePicker';
 import { db } from '@/lib/db';
 import { useModes } from '@/lib/modes';
 import { useAction, useAsync } from '@/lib/use-async';
+import { withFeature } from '@/features/NotInVibe';
 
-export default function NewDoubleDate() {
+function NewDoubleDate() {
   const router = useRouter();
   const { active, current } = useModes();
   const teams = useAsync(() => db.myTeams(), []);
@@ -44,3 +45,4 @@ export default function NewDoubleDate() {
     </Screen>
   );
 }
+export default withFeature('double_dates', NewDoubleDate);

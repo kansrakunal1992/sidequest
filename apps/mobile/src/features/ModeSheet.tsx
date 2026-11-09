@@ -1,18 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MODE_TILES } from '@/core/modes-ui';
+import { modeFeatureList, themeFor } from '@sidequest/shared';
 import { MODES, colors, radius, spacing } from '@/design/theme';
 import { AppText, Spacer } from '@/design/ui';
 import { useModes } from '@/lib/modes';
+import { useTheme } from '@/lib/theme';
 
 /** "Choose or switch anytime": a bottom sheet to change which vibe the app is showing. */
 export function ModeSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { active, current, setCurrent } = useModes();
+  const th = useTheme();
   const usable = MODE_TILES.filter((t) => active.some((a) => a.modeId === t.id && !a.paused));
   return (
     <Modal transparent animationType="slide" visible={visible} onRequestClose={onClose}>
       <Pressable style={st.backdrop} onPress={onClose} accessibilityLabel="Close" />
-      <View style={st.sheet}>
+      <View style={[st.sheet, { backgroundColor: th.surface }]}>
         <AppText variant="title">Your vibe</AppText>
         <AppText muted variant="caption">Switch any time. Each vibe has its own people, plans and privacy.</AppText>
         <Spacer h={spacing.md} />
@@ -20,10 +23,10 @@ export function ModeSheet({ visible, onClose }: { visible: boolean; onClose: () 
         {usable.map((t) => {
           const m = MODES[t.id]; const on = current === t.id;
           return (
-            <Pressable key={t.id} onPress={() => { setCurrent(t.id); onClose(); }} accessibilityRole="radio" accessibilityState={{ selected: on }} style={[st.row, on && { borderColor: m.accent }]}>
-              <Ionicons name={t.icon as never} size={22} color={m.accent} />
-              <View style={{ flex: 1 }}><Text style={st.label}>{m.label}</Text><Text style={st.tag}>{m.tagline}</Text></View>
-              {on ? <Ionicons name="checkmark-circle" size={22} color={m.accent} /> : null}
+            <Pressable key={t.id} onPress={() => { setCurrent(t.id); onClose(); }} accessibilityRole="radio" accessibilityState={{ selected: on }} style={[st.row, on && { borderColor: themeFor(t.id).highlight }]}>
+              <Ionicons name={t.icon as never} size={22} color={themeFor(t.id).highlight} />
+              <View style={{ flex: 1 }}><Text style={st.label}>{m.label}</Text><Text style={st.tag}>{m.tagline}</Text><Text style={st.tag}>{modeFeatureList(t.id).map((f) => f.title).join(', ') || 'People, chat and plans'}</Text></View>
+              {on ? <Ionicons name="checkmark-circle" size={22} color={themeFor(t.id).highlight} /> : null}
             </Pressable>
           );
         })}

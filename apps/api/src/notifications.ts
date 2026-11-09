@@ -52,6 +52,7 @@ const COPY: Record<NotificationKind, PushCopy> = {
   checkin_help: { title: 'A friend asked for help', body: 'A friend has asked for help. Please reach out to them now.', channel: 'safety' },
   checkin_safe: { title: 'Good news', body: 'The friend you were worried about has confirmed they are okay.', channel: 'safety' },
   moderation_notice: { title: 'An update on your account', body: 'Open SideQuest to read an important message about your account.', channel: 'safety' },
+  verification_result: { title: 'Photo verification update', body: 'Your photo verification was reviewed. Open the app to see the result.', channel: 'safety' },
   export_ready: { title: 'Your data export is ready', body: 'Open SideQuest within 7 days to download it.', channel: 'safety' },
 };
 /** True when this code knows how to word a push for `kind` (the database may know kinds this deployment does not). */
@@ -107,6 +108,44 @@ export function createNotifier(deps: { store: Store; sender: PushSender; clock: 
     },
     async deliverPush(n) {
       try { if (hasPushCopy(n.kind)) await push(n); } catch (e) { log(`push failed: ${(e as Error).message}`); }
+    },
+  };
+}
+
+/** What the "Send test notification" button gets back. `error` names the first thing that went wrong so the app can say what to do. */
+export interface PushTestResult {
+  /** Phones registered for this account. */
+  tokens: number;
+  /** Phones the push service accepted the test for. */
+  sent: number;
+  error: 'not_configured' | 'no_token' | 'token_invalid' | 'send_failed' | null;
+}
+export interface PushTester { configured: boolean; test(userId: string): Promise<PushTestResult> }
+
+/**
+ * Sends one harmless test push to the caller's own registered phones.
+ * `configured` is false when FCM_SERVICE_ACCOUNT_JSON is not set (the sender is then a no-op that would pretend to succeed).
+ * The text is fixed: no names, no vibes, nothing from the database.
+ */
+export function createPushTester(deps: { store: Store; sender: PushSender; configured: boolean; log?: (m: string) => void }): PushTester {
+  const log = deps.log ?? (() => {});
+  return {
+    configured: deps.configured,
+    async test(userId) {
+      const tokens = await deps.store.listPushTokens(userId);
+      if (!deps.configured) return { tokens: tokens.length, sent: 0, error: 'not_configured' };
+      if (!tokens.length) return { tokens: 0, sent: 0, error: 'no_token' };
+      let sent = 0, invalid = 0, failed = 0;
+      for (const t of tokens) {
+        try {
+          const r = await deps.sender.send(t.token, { title: 'Test notification', body: 'Notifications are working on this phone.', data: { kind: 'push_test' }, channel: 'messages' }, t.platform);
+          if (r === 'ok') sent++;
+          else if (r === 'invalid_token') { invalid++; await deps.store.removePushToken(t.token); }
+          else failed++;
+        } catch (e) { failed++; log(`push test failed: ${(e as Error).message}`); }
+      }
+      if (sent > 0) return { tokens: tokens.length, sent, error: null };
+      return { tokens: tokens.length, sent: 0, error: invalid > 0 && failed === 0 ? 'token_invalid' : 'send_failed' };
     },
   };
 }

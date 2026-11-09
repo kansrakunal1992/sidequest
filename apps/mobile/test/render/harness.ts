@@ -11,7 +11,8 @@ export async function getBundle(): Promise<string> {
     tsconfig: `${here}../../tsconfig.json`, target: 'es2020', loader: { '.ttf': 'empty', '.png': 'empty' },
     define: { 'process.env.EXPO_PUBLIC_API_URL': '"https://api.example.test"', 'process.env.NODE_ENV': '"development"', __DEV__: 'true', global: 'window' },
     alias: { 'react-native': 'react-native-web',  'expo-router': M('expo-router.tsx'), 'expo-linear-gradient': M('linear-gradient.tsx'), '@expo/vector-icons': M('icons.tsx'),
-      'react-native-safe-area-context': M('safe-area.tsx'), '@/lib/supabase': M('supabase.ts'), '@/lib/session': M('session.tsx'), '@/lib/modes': M('modes.tsx'), '@/lib/api': M('api.ts') },
+      'react-native-safe-area-context': M('safe-area.tsx'), '@/lib/supabase': M('supabase.ts'), '@/lib/session': M('session.tsx'), '@/lib/modes': M('modes.tsx'), '@/lib/api': M('api.ts'),
+      '@/lib/push': M('push.ts'), '@/lib/location': M('location.ts') },
   });
   bundle = r.outputFiles[0]!.text;
   return bundle;
@@ -23,7 +24,7 @@ export const closeAll = () => { for (const w of open.splice(0)) { try { w.close(
 const plain = <T,>(v: T): T => JSON.parse(JSON.stringify(v ?? null));
 
 export interface Page { win: any; doc: Document; calls: any[]; nav: any[]; errors: string[]; text: () => string; settle: (ms?: number) => Promise<void>; waitFor: (t: string, ms?: number) => Promise<void>; click: (text: string, nth?: number) => Promise<void>; type: (label: string, value: string) => Promise<void>; has: (t: string) => boolean; opened: () => string[]; rpcCalls: (name: string) => any[] }
-export async function mount(screen: string, setup: { rpc?: Record<string, unknown>; tables?: Record<string, unknown[]>; params?: Record<string, string>; profile?: unknown; mode?: string | null } = {}): Promise<Page> {
+export async function mount(screen: string, setup: { rpc?: Record<string, unknown>; tables?: Record<string, unknown[]>; params?: Record<string, string>; profile?: unknown; mode?: string | null; globals?: Record<string, unknown> } = {}): Promise<Page> {
   const code = await getBundle();
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://app.test/' });
   const win = dom.window as any; open.push(win);
@@ -34,6 +35,7 @@ export async function mount(screen: string, setup: { rpc?: Record<string, unknow
   win.console.error = (...a: unknown[]) => { errors.push(a.map(String).join(' ').slice(0, 400)); };
   win.addEventListener('error', (e: any) => errors.push(`uncaught: ${e.message}`));
   win.__rpc = setup.rpc ?? {}; win.__tables = setup.tables ?? {}; win.__params = setup.params ?? {}; win.__calls = []; win.__nav = []; if (setup.profile) win.__profile = setup.profile; if (setup.mode !== undefined) win.__mode = setup.mode;
+  for (const [k, v] of Object.entries(setup.globals ?? {})) win[k] = v;   // e.g. __pushPermission, __locResult: what the fake phone answers
   win.eval(code);
   win.__mount(screen);
   const settle = (ms = 70) => new Promise<void>((r) => setTimeout(r, ms));
@@ -50,7 +52,7 @@ export async function mount(screen: string, setup: { rpc?: Record<string, unknow
   const click = async (t: string, nth = 0) => {
     const before = seen(); const el = find(t, nth);
     (el.closest('[role=button],[role=tab],button') as HTMLElement | null ?? el).click();
-    await settle(); const end = Date.now() + 400; while (seen() === before && Date.now() < end) await settle(25);
+    await settle(); const end = Date.now() + 1500; while (seen() === before && Date.now() < end) await settle(25);
   };
   const type = async (label: string, value: string) => {
     const lab = [...doc.querySelectorAll<HTMLElement>('*')].find((e) => (e.textContent ?? '').trim() === label && e.children.length === 0);
@@ -60,6 +62,6 @@ export async function mount(screen: string, setup: { rpc?: Record<string, unknow
     Object.getOwnPropertyDescriptor(proto, 'value')!.set!.call(input, value);
     input.dispatchEvent(new win.Event('input', { bubbles: true })); await settle();
   };
-  const waitFor = async (t: string, ms = 2500) => { const end = Date.now() + ms; while (!text().includes(t)) { if (Date.now() > end) throw new Error(`timed out waiting for "${t}". Page text: ${text().slice(-500)}. Errors: ${errors.join(' | ')}`); await settle(25); } };
+  const waitFor = async (t: string, ms = 6000) => { const end = Date.now() + ms; while (!text().includes(t)) { if (Date.now() > end) throw new Error(`timed out waiting for "${t}". Page text: ${text().slice(-500)}. Errors: ${errors.join(' | ')}`); await settle(25); } };
   return { win, doc, waitFor, get calls() { return plain(win.__calls); }, get nav() { return plain(win.__nav); }, errors, text, settle, click, type, has: (t) => text().includes(t), opened: () => [...win.__opened] as string[], rpcCalls: (n) => plain(win.__calls).filter((c: any) => c.kind === 'rpc' && c.name === n) };
 }

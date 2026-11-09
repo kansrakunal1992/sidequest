@@ -5,8 +5,9 @@ import type { CircleRow } from '@/core/db-types';
 import { AppText, Button, Chip, ErrorText, Screen, Spacer, TextField, Wrap } from '@/design/ui';
 import { db } from '@/lib/db';
 import { useAction } from '@/lib/use-async';
+import { withFeature } from '@/features/NotInVibe';
 
-export default function NewCircle() {
+function NewCircle() {
   const router = useRouter();
   const [name, setName] = useState(''); const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<CircleRow['visibility']>('public'); const [category, setCategory] = useState<string | null>(null);
@@ -39,3 +40,4 @@ export default function NewCircle() {
     </Screen>
   );
 }
+export default withFeature('circles', NewCircle);

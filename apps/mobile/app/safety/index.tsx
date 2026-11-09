@@ -5,6 +5,7 @@ import { AppText, Button, Card, ErrorText, Screen, Spacer } from '@/design/ui';
 import { LegalLinks } from '@/features/LegalLinks';
 import { NavRow } from '@/features/SafetyBits';
 import { db } from '@/lib/db';
+import { useFeature } from '@/lib/theme';
 import { useAction, useAsync } from '@/lib/use-async';
 
 export default function SafetyHub() {
@@ -12,6 +13,7 @@ export default function SafetyHub() {
   const code = useAsync(() => db.myFriendCode(), []);
   const checkins = useAsync(() => db.myCheckins(), []);
   const { run, busy, error } = useAction();
+  const hasWing = useFeature('wingperson'), hasTogether = useFeature('together');
   const waiting = checkinsNeedingAnswer(checkins.data ?? []).length;
   return (
     <Screen>
@@ -30,8 +32,8 @@ export default function SafetyHub() {
       </Card>
       <Spacer />
       <NavRow icon="alarm" title="Trusted contacts and check-ins" hint="Someone who is told if you do not check in after a meet-up." badge={waiting ? `${waiting} waiting` : undefined} onPress={() => router.push('/safety/trusted' as never)} />
-      <NavRow icon="people" title="Wingperson" hint="A friend who can help with your profile. Never your chats." onPress={() => router.push('/safety/wing' as never)} />
-      <NavRow icon="heart" title="Together" hint="Link with a partner and choose exactly what is shared." onPress={() => router.push('/safety/together' as never)} />
+      {hasWing ? <NavRow icon="people" title="Wingperson" hint="A friend who can help with your profile. Never your chats." onPress={() => router.push('/safety/wing' as never)} /> : null}
+      {hasTogether ? <NavRow icon="heart" title="Together" hint="Link with a partner and choose exactly what is shared." onPress={() => router.push('/safety/together' as never)} /> : null}
       <NavRow icon="eye-off" title="Privacy and pause" hint="Browse incognito, read receipts, take a break." onPress={() => router.push('/safety/privacy' as never)} />
       <NavRow icon="ban" title="Blocked people" hint="See and undo your blocks." onPress={() => router.push('/safety/blocked' as never)} />
       <NavRow icon="download" title="Your data" hint="Download a copy, or delete your account." onPress={() => router.push('/safety/data' as never)} />
