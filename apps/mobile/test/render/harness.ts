@@ -12,7 +12,7 @@ export async function getBundle(): Promise<string> {
     define: { 'process.env.EXPO_PUBLIC_API_URL': '"https://api.example.test"', 'process.env.NODE_ENV': '"development"', __DEV__: 'true', global: 'window' },
     alias: { 'react-native': 'react-native-web',  'expo-router': M('expo-router.tsx'), 'expo-linear-gradient': M('linear-gradient.tsx'), '@expo/vector-icons': M('icons.tsx'),
       'react-native-safe-area-context': M('safe-area.tsx'), '@/lib/supabase': M('supabase.ts'), '@/lib/session': M('session.tsx'), '@/lib/modes': M('modes.tsx'), '@/lib/api': M('api.ts'),
-      '@/lib/push': M('push.ts'), '@/lib/location': M('location.ts') },
+      '@/lib/push': M('push.ts'), '@/lib/location': M('location.ts'), '@/lib/verify': M('verify.ts') },
   });
   bundle = r.outputFiles[0]!.text;
   return bundle;

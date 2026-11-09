@@ -15,6 +15,7 @@ import type { AdminPhotoAccess } from './admin-photos.ts';
 import type { Notifier, PushTester } from './notifications.ts';
 import type { PhotoAccess } from './photo-access.ts';
 import type { AgeVerifier, PhotoService } from './photos.ts';
+import type { SelfieVerification } from './selfie-verification.ts';
 import { isUuid, parseCreateInvite, parseReschedule } from './validate.ts';
 
 export interface AppDeps {
@@ -42,6 +43,8 @@ export interface AppDeps {
   /** Shared secret for the Supabase database webhook. Without it the webhook route is disabled. */
   webhookSecret?: string | null;
   ageVerifier?: AgeVerifier | null;
+  /** Automatic selfie verification. Off (the route answers 501 and /v1/config says so) unless the provider is configured. */
+  selfie?: SelfieVerification | null;
   log?: (m: string) => void;
 }
 
@@ -77,6 +80,12 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
   if (size === 0) return {};
   if (!String(req.headers['content-type'] ?? '').includes('application/json')) throw new HttpError(415, 'json_required');
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new HttpError(400, 'invalid_json'); }
+}
+
+async function readRaw(req: IncomingMessage, max = 256 * 1024): Promise<string> {
+  const chunks: Buffer[] = []; let size = 0;
+  for await (const c of req) { size += (c as Buffer).length; if (size > max) throw new HttpError(413, 'body_too_large'); chunks.push(c as Buffer); }
+  return Buffer.concat(chunks).toString('utf8');
 }
 
 export function createHandler(d: AppDeps): (req: IncomingMessage, res: ServerResponse) => void {
@@ -131,6 +140,15 @@ export function createHandler(d: AppDeps): (req: IncomingMessage, res: ServerRes
       return send(res, 200, { ok: true, notified: n });
     }
 
+    if (path === '/v1/hooks/didit' && method === 'POST') {
+      // Signed by the provider; no user token. The signature is checked over the body before anything is believed.
+      if (!d.selfie) return send(res, 404, { error: 'not_found' });
+      const out = await d.selfie.handleWebhook(await readRaw(req), { signature: String(req.headers['x-signature-v2'] ?? '') || undefined, timestamp: String(req.headers['x-timestamp'] ?? '') || undefined });
+      send(res, out.status, out.body);
+      if (out.after) void out.after().catch((e: unknown) => log(`didit webhook follow-up failed: ${(e as Error).message}`));
+      return;
+    }
+
     const ip = String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? 'unknown').split(',')[0]!.trim();
     const nowMs = d.clock().getTime();
     const ipCheck = ipLimiter.check(ip, nowMs, d.ipRatePerMinute ?? 300);
@@ -156,7 +174,12 @@ export function createHandler(d: AppDeps): (req: IncomingMessage, res: ServerRes
       return send(res, 200, { invites: (await d.invites.list(uid, box)).map(inviteDto) });
     }
 
-    if (path === '/v1/config' && method === 'GET') return send(res, 200, { calls: d.callsEnabled, photos: !!d.photoAccess, chatImages: !!d.chatMedia, exports: !!d.exports, push: !!d.push?.configured });
+    if (path === '/v1/config' && method === 'GET') return send(res, 200, { calls: d.callsEnabled, photos: !!d.photoAccess, chatImages: !!d.chatMedia, exports: !!d.exports, push: !!d.push?.configured, verification: !!d.selfie });
+    if (path === '/v1/verification/selfie/start' && method === 'POST') {
+      if (!d.selfie) return send(res, 501, { error: 'selfie_verification_not_configured' });
+      const b = await readJson(req) as { consent?: unknown };
+      return sendResult(res, await d.selfie.start(uid, b.consent === true), 200, (v) => v);
+    }
     if (path === '/v1/push/test' && method === 'POST') {
       await readJson(req);
       // 5 tests per 10 minutes per person: enough to troubleshoot, too few to be used as a spam cannon.

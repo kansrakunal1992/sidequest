@@ -1,7 +1,7 @@
 import { safeJson } from './admin-page.ts';
 
 /** Public pages Google Play requires for a social/dating app: privacy policy, terms with community guidelines (including the child-safety rule), and a web way to delete an account. */
-export interface LegalConfig { legalName: string; contactEmail: string; childSafetyEmail: string; supabaseUrl: string; anonKey: string | null; appName: string }
+export interface LegalConfig { legalName: string; contactEmail: string; childSafetyEmail: string; supabaseUrl: string; anonKey: string | null; appName: string; /** Name of the selfie-verification provider when that feature is switched on. */ verificationProvider?: string | null }
 export const POLICY_DATE = '7 November 2026';
 
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -39,6 +39,8 @@ export function privacyHtml(c: LegalConfig, nonce: string): string {
 <p>Other members see only what you choose to show on your profile for the vibe they are looking at. Your exact birthday, email and exact location are never shown. Photos you add to chats stay hidden until the other person chooses to open them. People you block cannot see you.</p>
 <p>A wingperson, trusted contact or partner you invite sees only the limited things you allow in the app (for example, a wingperson can see your profile wording but never your chats). A trusted contact is told, without your location, if you ask for help or do not answer a safety check-in.</p>
 <p>Our moderators can see the specific content that was reported (for example a reported message and a few messages around it) and the account history needed to decide. Their access is logged.</p>
+${c.verificationProvider ? `<h2>Photo verification (optional)</h2>
+<p>If you choose to verify your photos, you take a live selfie on a page run by <strong>${esc(c.verificationProvider)}</strong>. They check that a real person is present and compare your face with one of your approved profile photos, and tell us only whether it matched. This uses face data, which is sensitive, so we only do it after you agree on the verification screen, and you can say no and keep using ${A}. We do not receive or keep your selfie. We ask ${esc(c.verificationProvider)} to delete the session and the selfie as soon as we have the result. If it matches, your profile shows a \"photo verified\" badge. If it does not, nothing happens to your account.</p>` : ''}
 <h2>Services that help us run ${A}</h2>
 <p>We use these providers to host and deliver the service. They process data for us and may not use it for their own purposes: <strong>Supabase</strong> (database, sign-in and file storage), <strong>Railway</strong> (the servers that run our application), <strong>Google Firebase Cloud Messaging</strong> (to deliver push notifications; messages contain no names or message text), and, only if we switch these features on, a video-call provider (LiveKit) and an image-safety checking provider for photos. We may also disclose information if the law requires it, to protect someone's safety, or to report suspected child sexual abuse material to the National Center for Missing &amp; Exploited Children or the relevant authority.</p>
 <h2>How long we keep it</h2>

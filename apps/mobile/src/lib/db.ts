@@ -76,6 +76,7 @@ export const db = {
   submitAppeal: (message: string) => call<string>('submit_appeal', { p_message: message }),
   myBlocks: () => call<BlockRow[]>('my_blocks'),
   // trust: plain facts about the other person in a direct chat (needs migration 0015)
+  myVerification: () => call<unknown>('my_verification'),
   chatTrust: (conv: string) => call<unknown>('chat_trust', { p_conv: conv }),
   // games
   activeGame: (conv: string) => call<ActiveGameRow[]>('active_game', { p_conv: conv }),

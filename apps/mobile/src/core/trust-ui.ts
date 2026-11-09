@@ -2,8 +2,6 @@
 import { accountLooksSuspicious, assessMessageText, describeAccountTrust } from '@sidequest/shared';
 import type { AccountTrust, RiskFlag, RiskLevel } from '@sidequest/shared';
 
-/** Selfie verification is parked for the next sprint. While false, nothing says "verified" or "not verified" anywhere. */
-export const VERIFICATION_ENABLED = false;
 
 export interface MessageLike { id: string; senderId: string; body: string | null; mediaKind: string | null }
 export interface MessageWarning { level: Exclude<RiskLevel, 'none'>; flags: RiskFlag[]; explicit: boolean }
@@ -37,9 +35,10 @@ export const startsHidden = (w: MessageWarning): boolean => w.explicit;
 
 export interface TrustCardLine { label: string; tone: 'good' | 'neutral' | 'warn'; detail?: string }
 /** What the other person's account looks like, in plain facts. Empty when there is nothing worth saying. */
-export function trustCard(t: AccountTrust | null): { lines: TrustCardLine[]; suspicious: boolean } {
+/** `verificationAvailable` comes from the server (/v1/config). While it is false nothing says "verified" or "not verified" anywhere. */
+export function trustCard(t: AccountTrust | null, verificationAvailable = false): { lines: TrustCardLine[]; suspicious: boolean } {
   if (!t) return { lines: [], suspicious: false };
-  const lines = describeAccountTrust(t, { verificationAvailable: VERIFICATION_ENABLED });
+  const lines = describeAccountTrust(t, { verificationAvailable });
   return { lines, suspicious: accountLooksSuspicious(t) };
 }
 

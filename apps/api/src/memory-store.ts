@@ -181,6 +181,35 @@ export class MemoryStore implements Store {
   async isModerator(userId: string) { return this.moderators.has(userId); }
   async photoForReview(photoId: string) { const p = this.photos.get(photoId); return p && (p.status === 'pending' || this.reportedPhotoIds.has(photoId)) ? p.storagePath : null; }
 
+  verifiedUsers = new Set<string>();
+  verifications: { id: string; userId: string; status: 'started' | 'pending' | 'approved' | 'rejected' | 'expired'; providerSessionId: string | null; reason: string | null; createdAt: Date }[] = [];
+  async isVerified(userId: string) { return this.verifiedUsers.has(userId); }
+  async approvedPhotoPaths(userId: string) {
+    return [...this.photos.values()].filter((p) => p.userId === userId && p.status === 'approved').sort((a, b) => (a.position ?? 0) - (b.position ?? 0)).slice(0, 3).map((p) => p.storagePath);
+  }
+  async countVerificationAttempts(since: Date, userId?: string) {
+    return this.verifications.filter((v) => v.providerSessionId && v.createdAt >= since && (!userId || v.userId === userId)).length;
+  }
+  async openVerification(userId: string) {
+    const v = this.verifications.find((x) => x.userId === userId && (x.status === 'started' || x.status === 'pending'));
+    return v ? { id: v.id, providerSessionId: v.providerSessionId, createdAt: v.createdAt } : null;
+  }
+  async createVerification(userId: string, now: Date) {
+    if (this.verifications.some((x) => x.userId === userId && (x.status === 'started' || x.status === 'pending'))) return null;
+    const id = `ver-${this.verifications.length + 1}`;
+    this.verifications.push({ id, userId, status: 'started', providerSessionId: null, reason: null, createdAt: now });
+    return id;
+  }
+  async attachProviderSession(id: string, providerSessionId: string) {
+    const v = this.verifications.find((x) => x.id === id && x.status === 'started'); if (v) { v.providerSessionId = providerSessionId; v.status = 'pending'; }
+  }
+  async findVerificationBySession(providerSessionId: string) {
+    const v = this.verifications.find((x) => x.providerSessionId === providerSessionId); return v ? { id: v.id, userId: v.userId } : null;
+  }
+  async finishVerification(id: string, status: 'approved' | 'rejected' | 'expired', reason: string | null) {
+    const v = this.verifications.find((x) => x.id === id && (x.status === 'started' || x.status === 'pending')); if (!v) return false;
+    v.status = status; v.reason = reason; if (status === 'approved') this.verifiedUsers.add(v.userId); return true;
+  }
   async getPhoto(id: string) { const p = this.photos.get(id); return p ? { ...p } : null; }
   async setPhotoStatus(id: string, status: PhotoStatus) { const p = this.photos.get(id); if (p) p.status = status; }
 

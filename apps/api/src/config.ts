@@ -15,6 +15,8 @@ export interface Config {
   /** Who runs the service, shown on the public privacy policy and terms (Google Play requires it). The public pages stay OFF until both are set. */
   legalName: string | null; contactEmail: string | null; childSafetyEmail: string | null; appName: string;
   webhookSecret: string | null;
+  /** Automatic selfie verification (Didit). Null = switched off. All three DIDIT_ values must be set together. */
+  didit: { apiKey: string; workflowId: string; webhookSecret: string; baseUrl: string | null; minScore: number; monthlyCap: number; returnUrl: string } | null;
 }
 
 /** Fails fast with ALL problems listed, so a bad deploy is obvious in the Railway logs. */
@@ -39,6 +41,13 @@ export function loadConfig(env: Record<string, string | undefined>, role: 'api' 
   const pm = env.PHOTO_MODERATION ?? 'required';
   if (pm !== 'required' && pm !== 'off') problems.push('PHOTO_MODERATION must be "required" or "off"');
   if (env.WEBHOOK_SECRET && env.WEBHOOK_SECRET.trim().length < 16) problems.push('WEBHOOK_SECRET must be at least 16 characters');
+  const diditKeys = ['DIDIT_API_KEY', 'DIDIT_WORKFLOW_ID', 'DIDIT_WEBHOOK_SECRET'] as const;
+  const diditSet = diditKeys.filter((k) => env[k]?.trim());
+  if (diditSet.length > 0 && diditSet.length < diditKeys.length) problems.push(`DIDIT_API_KEY, DIDIT_WORKFLOW_ID and DIDIT_WEBHOOK_SECRET must all be set together (missing: ${diditKeys.filter((k) => !env[k]?.trim()).join(', ')})`);
+  const minScore = Number(env.VERIFY_MIN_MATCH_SCORE ?? 85), monthlyCap = Number(env.VERIFY_MONTHLY_CAP ?? 90);
+  if (!Number.isFinite(minScore) || minScore < 50 || minScore > 99) problems.push('VERIFY_MIN_MATCH_SCORE must be a number from 50 to 99');
+  if (!Number.isInteger(monthlyCap) || monthlyCap < 1) problems.push('VERIFY_MONTHLY_CAP must be a whole number of 1 or more');
+  if (env.DIDIT_BASE_URL && !/^https:\/\/[^\s/]+/i.test(env.DIDIT_BASE_URL.trim())) problems.push('DIDIT_BASE_URL must start with https://');
   if (problems.length) throw new Error(`Invalid configuration:\n- ${problems.join('\n- ')}`);
   return {
     port, databaseUrl, supabaseUrl, jwtSecret: env.SUPABASE_JWT_SECRET?.trim() || null,
@@ -47,5 +56,6 @@ export function loadConfig(env: Record<string, string | undefined>, role: 'api' 
     photoModeration: pm as 'required' | 'off', serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY?.trim() || null,
     webhookSecret: env.WEBHOOK_SECRET?.trim() || null, anonKey: env.SUPABASE_ANON_KEY?.trim() || null,
     legalName: env.LEGAL_NAME?.trim() || null, contactEmail: env.CONTACT_EMAIL?.trim() || null, childSafetyEmail: env.CHILD_SAFETY_EMAIL?.trim() || env.CONTACT_EMAIL?.trim() || null, appName: env.APP_NAME?.trim() || 'SideQuest',
+    didit: diditSet.length === diditKeys.length ? { apiKey: env.DIDIT_API_KEY!.trim(), workflowId: env.DIDIT_WORKFLOW_ID!.trim(), webhookSecret: env.DIDIT_WEBHOOK_SECRET!.trim(), baseUrl: env.DIDIT_BASE_URL?.trim() || null, minScore, monthlyCap, returnUrl: env.VERIFY_RETURN_URL?.trim() || 'sidequest://safety/verify' } : null,
   };
 }

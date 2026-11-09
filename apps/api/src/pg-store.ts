@@ -255,6 +255,46 @@ export class PgStore implements Store {
     return (r.rows[0]?.storage_path as string | undefined) ?? null;
   }
 
+  async isVerified(userId: string) {
+    const r = await this.db.query('select verified_at is not null as v from profiles where id = $1', [userId]);
+    return r.rows[0]?.v === true;
+  }
+  async approvedPhotoPaths(userId: string) {
+    const r = await this.db.query(`select storage_path from profile_photos where user_id = $1 and moderation_status = 'approved' order by position, created_at limit 3`, [userId]);
+    return r.rows.map((x: any) => x.storage_path as string);
+  }
+  async countVerificationAttempts(since: Date, userId?: string) {
+    const r = await this.db.query('select count(*)::int as n from photo_verifications where provider_session_id is not null and created_at >= $1 and ($2::uuid is null or user_id = $2::uuid)', [since, userId ?? null]);
+    return Number(r.rows[0]?.n ?? 0);
+  }
+  async openVerification(userId: string) {
+    const r = await this.db.query(`select id, provider_session_id, created_at from photo_verifications where user_id = $1 and status in ('started', 'pending')`, [userId]);
+    const x = r.rows[0];
+    return x ? { id: x.id as string, providerSessionId: (x.provider_session_id as string | null) ?? null, createdAt: new Date(x.created_at) } : null;
+  }
+  async createVerification(userId: string, now: Date, expiresAt: Date) {
+    try {
+      const r = await this.db.query(`insert into photo_verifications (user_id, pose, status, provider, consent_at, created_at, expires_at) values ($1, 'auto', 'started', 'didit', $2, $2, $3) returning id`, [userId, now, expiresAt]);
+      return r.rows[0].id as string;
+    } catch (e) { if ((e as { code?: string }).code === '23505') return null; throw e; }   // photo_verifications_one_open
+  }
+  async attachProviderSession(id: string, providerSessionId: string) {
+    await this.db.query(`update photo_verifications set provider_session_id = $2, status = 'pending', submitted_at = now() where id = $1 and status = 'started'`, [id, providerSessionId]);
+  }
+  async findVerificationBySession(providerSessionId: string) {
+    const r = await this.db.query('select id, user_id from photo_verifications where provider_session_id = $1', [providerSessionId]);
+    const x = r.rows[0];
+    return x ? { id: x.id as string, userId: x.user_id as string } : null;
+  }
+  async finishVerification(id: string, status: 'approved' | 'rejected' | 'expired', reason: string | null, now: Date) {
+    // One statement, so "decided" and "verified" can never disagree.
+    const r = await this.db.query(
+      `with a as (update photo_verifications set status = $2, reject_reason = $3, decided_at = $4 where id = $1 and status in ('started', 'pending') returning user_id),
+            p as (update profiles set verified_at = $4 where $2 = 'approved' and verified_at is null and id in (select user_id from a) returning id)
+       select (select count(*) from a)::int as n`, [id, status, reason, now]);
+    return Number(r.rows[0]?.n ?? 0) > 0;
+  }
+
   async getPhoto(id: string): Promise<PhotoRow | null> {
     const r = await this.db.query('select id, user_id, storage_path, moderation_status from profile_photos where id = $1', [id]);
     const x = r.rows[0];

@@ -52,7 +52,9 @@ export function createApiClient(o: { baseUrl: string; getToken: () => Promise<st
     photoUrls: (items: { userId: string; modeId: string; all?: boolean }[]) =>
       json<{ results: { userId: string; modeId: string; urls: string[] }[]; expiresInSeconds: number }>('POST', '/v1/photos/urls', { items }),
     chatMediaUrl: (messageId: string) => json<{ url: string; expiresInSeconds: number }>('POST', '/v1/chat-media/url', { messageId }),
-    config: () => json<{ calls: boolean; photos: boolean; chatImages: boolean; exports: boolean; push: boolean }>('GET', '/v1/config'),
+    config: () => json<{ calls: boolean; photos: boolean; chatImages: boolean; exports: boolean; push: boolean; verification: boolean }>('GET', '/v1/config'),
+    /** Opens an automatic selfie check. Returns the provider's page to open in the browser. `consent` must be true. */
+    startSelfieVerification: (consent: boolean) => json<{ url: string }>('POST', '/v1/verification/selfie/start', { consent }),
     /** Sends one harmless test notification to my own phones and says what went wrong, if anything. */
     pushTest: () => json<{ tokens: number; sent: number; error: 'not_configured' | 'no_token' | 'token_invalid' | 'send_failed' | null }>('POST', '/v1/push/test'),
     /** A 5-minute link to my own finished data export. */

@@ -272,3 +272,30 @@ test('Privacy: a typed city is the manual fallback and goes through the same fun
   await p.waitFor('Use this city'); await p.type('Or use a city', 'Kolkata'); await p.click('Use this city');
   await p.waitFor('Location updated'); assert.deepEqual(p.rpcCalls('set_approx_location')[0].args, { p_lat: 22.57, p_lng: 88.36 });
 });
+
+// ------------------------------------------------------------------ automatic photo verification
+test('Verify: asks for agreement in plain words, starts the check, and shows the result when it arrives', async () => {
+  const p = await mount('verify', { globals: { __myVerification: { verified: false, verified_at: null, latest: null } } });
+  await p.waitFor('Photo verification'); await p.waitFor('I agree, start the check');
+  assert.ok(p.has('We never receive your selfie') && p.has('Not now'));
+  await p.click('I agree, start the check');
+  await p.waitFor('Waiting for the result'); assert.ok(p.calls.some((c) => c.kind === 'startSelfieCheck'));
+  noErrors(p);
+});
+test('Verify: a failed start says why; a past mismatch offers a retry; a verified person is told what the badge means', async () => {
+  const e = await mount('verify', { globals: { __verifyStartError: 'You have tried a few times already. Please try again tomorrow.' } });
+  await e.waitFor('I agree, start the check'); await e.click('I agree, start the check');
+  await e.waitFor('try again tomorrow'); assert.ok(!e.has('Waiting for the result'));
+  const f = await mount('verify', { globals: { __myVerification: { verified: false, latest: { status: 'rejected', reject_reason: 'face_mismatch', expires_at: null } } } });
+  await f.waitFor('did not match your profile photo'); assert.ok(f.has('Try again'));
+  const ok = await mount('verify', { globals: { __myVerification: { verified: true, verified_at: '2026-11-09T00:00:00Z', latest: null } } });
+  await ok.waitFor('You are photo verified'); assert.ok(ok.has('does not check your name'));
+  const off = await mount('verify', { globals: { __verification: false } });
+  await off.waitFor('Not available yet'); assert.ok(!off.has('I agree, start the check'));
+});
+test('Safety hub: the Photo verification row appears only when the server has it', async () => {
+  const on = await mount('safety', { mode: 'serious_dating', rpc: { my_friend_code: 'ab12cd34', my_checkins: [] } });
+  await on.waitFor('AB12 CD34'); await on.settle(100); assert.ok(on.has('Photo verification'));
+  const off = await mount('safety', { mode: 'serious_dating', rpc: { my_friend_code: 'ab12cd34', my_checkins: [] }, globals: { __verification: false } });
+  await off.waitFor('AB12 CD34'); await off.settle(100); assert.ok(!off.has('Photo verification'));
+});

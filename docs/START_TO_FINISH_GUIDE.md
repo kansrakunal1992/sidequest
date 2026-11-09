@@ -186,7 +186,7 @@ pnpm check:sql
 
 ☐ **Step 4.3. Collect the database connection string.** Click **Connect** at the top of the dashboard → find **Session pooler** → copy the **URI**. It looks like `postgresql://postgres.xxxx:[YOUR-PASSWORD]@aws-0-....pooler.supabase.com:5432/postgres`. Replace `[YOUR-PASSWORD]` (including the square brackets) with the database password from Step 4.1. Save to the secrets sheet 🔴.
 
-### Create the database tables (16 SQL files, in order)
+### Create the database tables (17 SQL files, in order)
 
 ☐ **Step 4.4.** In Supabase click **SQL Editor** (left side) → **New query**.
 
@@ -211,8 +211,9 @@ For **each** file below, in this order: open it in VS Code (it is in `sidequest/
 | ☐ | `0014_mode_features.sql` |
 | ☐ | `0015_trust.sql` |
 | ☐ | `0016_mode_labels.sql` |
+| ☐ | `0017_auto_selfie.sql` |
 
-*If you already ran 0001 to 0013 earlier, run only the three new ones (0014, 0015, 0016), in that order, each once.*
+*If you already ran 0001 to 0013 earlier, run only the three new ones (0014, 0015, 0016, 0017), in that order, each once.*
 
 ☐ **Step 4.5. Run the safety self-test.** Paste the whole of **`supabase/tests/rls_smoke.sql`** into a new query and Run. ✅ The result table shows **`ALL RLS SMOKE TESTS PASSED`**. (It changes nothing permanently.) ❌ Any other result: send it to me. **Never run `local_stubs.sql`** (it is for a different purpose and would break things).
 

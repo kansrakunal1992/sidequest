@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Alert, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import { checkinsNeedingAnswer, formatFriendCode } from '@/core/safety-core';
@@ -5,6 +6,7 @@ import { AppText, Button, Card, ErrorText, Screen, Spacer } from '@/design/ui';
 import { LegalLinks } from '@/features/LegalLinks';
 import { NavRow } from '@/features/SafetyBits';
 import { db } from '@/lib/db';
+import { api } from '@/lib/api';
 import { useFeature } from '@/lib/theme';
 import { useAction, useAsync } from '@/lib/use-async';
 
@@ -14,6 +16,8 @@ export default function SafetyHub() {
   const checkins = useAsync(() => db.myCheckins(), []);
   const { run, busy, error } = useAction();
   const hasWing = useFeature('wingperson'), hasTogether = useFeature('together');
+  const [verifyOn, setVerifyOn] = useState(false);
+  useEffect(() => { void api.config().then((c) => setVerifyOn(!!c.verification)).catch(() => setVerifyOn(false)); }, []);
   const waiting = checkinsNeedingAnswer(checkins.data ?? []).length;
   return (
     <Screen>
@@ -32,6 +36,7 @@ export default function SafetyHub() {
       </Card>
       <Spacer />
       <NavRow icon="alarm" title="Trusted contacts and check-ins" hint="Someone who is told if you do not check in after a meet-up." badge={waiting ? `${waiting} waiting` : undefined} onPress={() => router.push('/safety/trusted' as never)} />
+      {verifyOn ? <NavRow icon="checkmark-circle" title="Photo verification" hint="Optional. A quick live selfie, checked automatically." onPress={() => router.push('/safety/verify' as never)} /> : null}
       {hasWing ? <NavRow icon="people" title="Wingperson" hint="A friend who can help with your profile. Never your chats." onPress={() => router.push('/safety/wing' as never)} /> : null}
       {hasTogether ? <NavRow icon="heart" title="Together" hint="Link with a partner and choose exactly what is shared." onPress={() => router.push('/safety/together' as never)} /> : null}
       <NavRow icon="eye-off" title="Privacy and pause" hint="Browse incognito, read receipts, take a break." onPress={() => router.push('/safety/privacy' as never)} />

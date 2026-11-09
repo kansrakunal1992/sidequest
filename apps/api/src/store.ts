@@ -61,6 +61,20 @@ export interface Store {
   isModerator(userId: string): Promise<boolean>;
   photoForReview(photoId: string): Promise<string | null>;
 
+  /** Automatic selfie verification. Attempts live in photo_verifications; the API owns every write. */
+  isVerified(userId: string): Promise<boolean>;
+  /** The person's own approved photos, main photo first (at most 3). */
+  approvedPhotoPaths(userId: string): Promise<string[]>;
+  /** Attempts that reached the provider since `since`: for one person, or for everyone when userId is omitted. */
+  countVerificationAttempts(since: Date, userId?: string): Promise<number>;
+  openVerification(userId: string): Promise<{ id: string; providerSessionId: string | null; createdAt: Date } | null>;
+  /** Null when the person already has an open attempt (the database refuses a second one). */
+  createVerification(userId: string, now: Date, expiresAt: Date): Promise<string | null>;
+  attachProviderSession(id: string, providerSessionId: string): Promise<void>;
+  findVerificationBySession(providerSessionId: string): Promise<{ id: string; userId: string } | null>;
+  /** Decides an open attempt exactly once. 'approved' also marks the person verified, in the same statement. False = it was already decided. */
+  finishVerification(id: string, status: 'approved' | 'rejected' | 'expired', reason: string | null, now: Date): Promise<boolean>;
+
   getPhoto(id: string): Promise<PhotoRow | null>;
   setPhotoStatus(id: string, status: PhotoStatus): Promise<void>;
   /** Storage paths of `ownerId`'s approved photos that `viewerId` may see in `mode`. Empty if blocked, not in the mode, or nothing is visible. */

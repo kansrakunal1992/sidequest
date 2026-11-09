@@ -13,6 +13,7 @@ import { ExportAccess } from './data-requests.ts';
 import { PhotoAccess } from './photo-access.ts';
 import { PhotoService, SupabaseStorageSigner } from './photos.ts';
 import { FcmSender } from './push-fcm.ts';
+import { DiditProvider, SelfieVerification } from './selfie-verification.ts';
 import { SupabaseAdminClient } from './supabase-admin.ts';
 
 const cfg = loadConfig(process.env);
@@ -41,13 +42,19 @@ const photos = new PhotoService({
 });
 if (cfg.photoModeration === 'off') log('WARNING: PHOTO_MODERATION=off. Photos are auto-approved. Development only.');
 
+const selfie = cfg.didit && signer
+  ? new SelfieVerification({ store, provider: new DiditProvider({ apiKey: cfg.didit.apiKey, workflowId: cfg.didit.workflowId, ...(cfg.didit.baseUrl ? { baseUrl: cfg.didit.baseUrl } : {}) }), signer, notifier, clock,
+      webhookSecret: cfg.didit.webhookSecret, minScore: cfg.didit.minScore, monthlyCap: cfg.didit.monthlyCap, returnUrl: cfg.didit.returnUrl, log })
+  : null;
+if (!selfie) log(cfg.didit ? 'DIDIT_* is set but SUPABASE_SERVICE_ROLE_KEY is not: selfie verification is OFF' : 'DIDIT_* not set: selfie verification is OFF (the app hides it)');
+
 const getJwks = createJwksProvider(`${cfg.supabaseUrl}/auth/v1/.well-known/jwks.json`, fetch);
 const verifyToken = (token: string) =>
   verifyJwt(token, { hsSecret: cfg.jwtSecret ?? undefined, getJwks, now: new Date(), audience: 'authenticated', issuer: `${cfg.supabaseUrl}/auth/v1` });
 
 const server = createServer(createHandler({ invites, store, verifyToken, clock, callsEnabled: cfg.callsEnabled, livekit: cfg.livekit, corsOrigin: cfg.corsOrigin, photos, photoAccess, chatMedia, exports: exportAccess,
-  legal: cfg.legalName && cfg.contactEmail ? { legalName: cfg.legalName, contactEmail: cfg.contactEmail, childSafetyEmail: cfg.childSafetyEmail ?? cfg.contactEmail, supabaseUrl: cfg.supabaseUrl, anonKey: cfg.anonKey, appName: cfg.appName } : null, admin: cfg.anonKey ? { supabaseUrl: cfg.supabaseUrl, anonKey: cfg.anonKey } : null,
-  adminPhotos: signer && cfg.anonKey ? new AdminPhotoAccess(store, signer) : null, notifier, push, webhookSecret: cfg.webhookSecret, ageVerifier: null, log }));
+  legal: cfg.legalName && cfg.contactEmail ? { legalName: cfg.legalName, contactEmail: cfg.contactEmail, childSafetyEmail: cfg.childSafetyEmail ?? cfg.contactEmail, supabaseUrl: cfg.supabaseUrl, anonKey: cfg.anonKey, appName: cfg.appName, verificationProvider: cfg.didit ? 'Didit' : null } : null, admin: cfg.anonKey ? { supabaseUrl: cfg.supabaseUrl, anonKey: cfg.anonKey } : null,
+  adminPhotos: signer && cfg.anonKey ? new AdminPhotoAccess(store, signer) : null, notifier, push, selfie, webhookSecret: cfg.webhookSecret, ageVerifier: null, log }));
 server.listen(cfg.port, () => log(`api listening on ${cfg.port}`));
 
 const stop = () => { log('shutting down'); server.close(() => pool.end().finally(() => process.exit(0))); setTimeout(() => process.exit(1), 10_000).unref(); };

@@ -11,7 +11,7 @@ import { colors, radius, spacing } from '@/design/theme';
 import { AppText, Chip, ErrorText, Row, Wrap } from '@/design/ui';
 import { GameButton } from '@/features/GameButton';
 import { MessageWarningBanner, TrustCard } from '@/features/TrustBits';
-import { VERIFICATION_ENABLED, incomingWarnings, parseTrust, trustCard } from '@/core/trust-ui';
+import { incomingWarnings, parseTrust, trustCard } from '@/core/trust-ui';
 import { db } from '@/lib/db';
 import { blockUser } from '@/lib/discovery';
 import { SafetyMenu } from '@/features/SafetyMenu';
@@ -53,6 +53,7 @@ export default function Thread() {
   const [receipt, setReceipt] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [trust, setTrust] = useState<ReturnType<typeof parseTrust>>(null);
+  const [verifyOn, setVerifyOn] = useState(false);
   const [more, setMore] = useState(true);
   const msgsRef = useRef(msgs); msgsRef.current = msgs;
 
@@ -79,7 +80,8 @@ export default function Thread() {
   // Facts about the other account. If the function is missing (migration 0015 not run yet) or fails, the card is simply not shown.
   useEffect(() => { if (id && direct) void db.chatTrust(id).then((r) => setTrust(parseTrust(r))).catch(() => setTrust(null)); }, [id, direct]);
   const warnings = useMemo(() => incomingWarnings(msgs, me), [msgs, me]);
-  const card = useMemo(() => trustCard(trust), [trust]);
+  useEffect(() => { void api.config().then((c) => setVerifyOn(!!c.verification)).catch(() => setVerifyOn(false)); }, []);
+  const card = useMemo(() => trustCard(trust, verifyOn), [trust, verifyOn]);
   const gate = useMemo(() => (direct ? sendGate(msgs, me) : { allowed: true, hint: null }), [direct, msgs, me]);
   const lastMine = [...msgs].reverse().find((m) => m.senderId === me);
   const label = direct ? receiptLabel(lastMine, receipt) : null;
@@ -126,7 +128,7 @@ export default function Thread() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <Row style={st.header}>
         <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Back" hitSlop={12}><Ionicons name="chevron-back" size={26} color={colors.text} /></Pressable>
-        <View style={{ flex: 1 }}><Row><Text style={st.title}>{direct ? info.displayName : info.title ?? 'Group chat'}</Text>{direct && info.verified && VERIFICATION_ENABLED ? <Ionicons name="checkmark-circle" size={16} color={colors.cyan} /> : null}</Row></View>
+        <View style={{ flex: 1 }}><Row><Text style={st.title}>{direct ? info.displayName : info.title ?? 'Group chat'}</Text>{direct && info.verified && verifyOn ? <Ionicons name="checkmark-circle" size={16} color={colors.cyan} /> : null}</Row></View>
         {direct ? <Pressable onPress={() => router.push({ pathname: '/invite/new', params: { to: info.userId, mode: info.modeId, name: info.displayName } } as never)} accessibilityRole="button" accessibilityLabel="Send an invitation" hitSlop={10}><Ionicons name="calendar" size={22} color={colors.text} /></Pressable> : <Text style={{ color: colors.textMuted, fontSize: 12 }}>{info.memberCount} people</Text>}
         {direct ? <GameButton conversationId={id!} /> : null}
         {direct ? <Pressable onPress={() => setMenu(true)} accessibilityRole="button" accessibilityLabel="More" hitSlop={10}><Ionicons name="ellipsis-horizontal" size={22} color={colors.text} /></Pressable> : null}

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { VERIFICATION_ENABLED, bannerText, incomingWarnings, parseTrust, startsHidden, trustCard } from '../src/core/trust-ui.ts';
+import { bannerText, incomingWarnings, parseTrust, startsHidden, trustCard } from '../src/core/trust-ui.ts';
 import type { MessageLike } from '../src/core/trust-ui.ts';
 
 const ME = 'me', THEM = 'them';
@@ -33,8 +33,7 @@ test('banner text leads with the most serious flag and lists the rest', () => {
   assert.ok(b.advice.length > 20 && b.more.length >= 1);
 });
 
-test('selfie verification is parked: no "verified" or "not verified" wording anywhere in the card', () => {
-  assert.equal(VERIFICATION_ENABLED, false);
+test('while the server has no selfie verification, no "verified" or "not verified" wording appears in the card', () => {
   const c = trustCard({ verified: false, accountAgeDays: 40, repeatedMessageTo: 0 });
   assert.deepEqual(c.lines, []);
   assert.equal(c.suspicious, false);
@@ -42,6 +41,9 @@ test('selfie verification is parked: no "verified" or "not verified" wording any
   assert.deepEqual(fresh.lines.map((l) => l.label), ['Joined today', 'Sent the same message to 4 people today']);
   assert.equal(fresh.suspicious, true);
   for (const l of fresh.lines) assert.ok(!/verified/i.test(`${l.label} ${l.detail}`));
+  // once the server reports verification is on, the honest "not verified" line returns
+  assert.ok(trustCard({ verified: false, accountAgeDays: 40, repeatedMessageTo: 0 }, true).lines.some((l) => /not photo verified/i.test(l.label)));
+  assert.ok(trustCard({ verified: true, accountAgeDays: 40, repeatedMessageTo: 0 }, true).lines.some((l) => /photo verified/i.test(l.label)));
   assert.deepEqual(trustCard(null), { lines: [], suspicious: false });
 });
 
