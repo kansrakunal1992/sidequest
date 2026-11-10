@@ -51,7 +51,7 @@ const ENTRY: Record<NotificationKind, (p: Payload) => InboxEntry> = {
 };
 export function describeNotification(kind: string, payload: Payload | null): InboxEntry {
   const f = (ENTRY as Record<string, ((p: Payload) => InboxEntry) | undefined>)[kind];
-  if (!f) return { title: 'Update', body: 'Open SideQuest to see what is new.', route: null };   // a kind a newer server knows but this app does not
+  if (!f) return { title: 'Update', body: 'Open Waypoint to see what is new.', route: null };   // a kind a newer server knows but this app does not
   const e = f(payload ?? {});
   return { ...e, route: e.route || null };
 }

@@ -25,7 +25,7 @@ export default function Trusted() {
   return (
     <Screen>
       <AppText variant="headline" accessibilityRole="header">Trusted contacts and check-ins</AppText>
-      <AppText muted>Pick someone on SideQuest you trust. After a meet-up, we ask you to confirm you are okay. If you do not answer within 30 minutes, we let them know so they can reach out. They only learn this when it happens, never where you are.</AppText>
+      <AppText muted>Pick someone on Waypoint you trust. After a meet-up, we ask you to confirm you are okay. If you do not answer within 30 minutes, we let them know so they can reach out. They only learn this when it happens, never where you are.</AppText>
       <Spacer />
       {error ? <ErrorText>{error}</ErrorText> : null}
       {answer.length ? <><AppText variant="title">Please answer</AppText>{answer.map((c) => (

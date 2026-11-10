@@ -40,7 +40,7 @@ export function generateIcs(ev: IcsEvent): string {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//SideQuest//Calendar//EN',
+    'PRODID:-//Waypoint//Calendar//EN',
     'CALSCALE:GREGORIAN',
     `METHOD:${cancelled ? 'CANCEL' : 'PUBLISH'}`,
     'BEGIN:VEVENT',

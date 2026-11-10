@@ -108,7 +108,7 @@ export default function Thread() {
   }
   async function sendPhoto() {
     if (!id || !gate.allowed) return;
-    Alert.alert('Send a photo?', 'Only send photos the other person would be glad to receive. Unsolicited intimate images are not allowed and lead to removal from SideQuest.', [
+    Alert.alert('Send a photo?', 'Only send photos the other person would be glad to receive. Unsolicited intimate images are not allowed and lead to removal from Waypoint.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Choose photo', onPress: async () => {
         const [uri] = await pickPhotos(1); if (!uri) return;

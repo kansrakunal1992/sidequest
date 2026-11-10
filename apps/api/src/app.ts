@@ -230,7 +230,7 @@ export function createHandler(d: AppDeps): (req: IncomingMessage, res: ServerRes
       if (action === 'ics' && method === 'GET') {
         const r = await d.invites.ics(uid, id);
         if (!r.ok) return sendResult(res, r, 200, () => null);
-        res.writeHead(200, { 'content-type': 'text/calendar; charset=utf-8', 'content-disposition': `attachment; filename="sidequest-${id}.ics"`, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
+        res.writeHead(200, { 'content-type': 'text/calendar; charset=utf-8', 'content-disposition': `attachment; filename="waypoint-${id}.ics"`, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
         res.end(r.value); return;
       }
       if (method === 'POST') {

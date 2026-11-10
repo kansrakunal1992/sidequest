@@ -1,4 +1,4 @@
-# SideQuest build progress
+# Waypoint build progress
 
 > **v12 checkpoint (work in progress): read `docs/HANDOFF_WAYPOINT.md` first.** It holds the exact state, the owner's five new requests (rebrand to Waypoint, notifications, location, per-vibe themes and features, explicit trust features), what is done (migrations 0014 and 0015, shared theme/feature/trust modules, all tested) and what is next. Progress stays at **84** until the app, API and admin integration of those requests is written and verified. Counts at this checkpoint: shared 49, API 116 (+8 need a database), mobile 110, smoke test 235 checks on migrations 0001-0015.
 
@@ -85,5 +85,5 @@ cd apps/api && PG_TEST_URL=postgres://... node --test test/pg-integration.test.t
 - Terms and Privacy Policy are not written yet; anything shown is a placeholder pending legal review.
 
 ## Decisions
-- Name: SideQuest. Bottom tabs: Discover, Circles, Chat, Calendar, Profile. Discover top tabs: People, Open Calls, Activities.
+- Name: Waypoint. Bottom tabs: Discover, Circles, Chat, Calendar, Profile. Discover top tabs: People, Open Calls, Activities.
 - Email one-time-code sign-in (no passwords). Rewind and Spark are free and unlimited.

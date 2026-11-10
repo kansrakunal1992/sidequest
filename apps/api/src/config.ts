@@ -55,7 +55,7 @@ export function loadConfig(env: Record<string, string | undefined>, role: 'api' 
     callsEnabled: wantCalls && livekit !== null, livekit, corsOrigin: env.CORS_ORIGIN?.trim() || null,
     photoModeration: pm as 'required' | 'off', serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY?.trim() || null,
     webhookSecret: env.WEBHOOK_SECRET?.trim() || null, anonKey: env.SUPABASE_ANON_KEY?.trim() || null,
-    legalName: env.LEGAL_NAME?.trim() || null, contactEmail: env.CONTACT_EMAIL?.trim() || null, childSafetyEmail: env.CHILD_SAFETY_EMAIL?.trim() || env.CONTACT_EMAIL?.trim() || null, appName: env.APP_NAME?.trim() || 'SideQuest',
+    legalName: env.LEGAL_NAME?.trim() || null, contactEmail: env.CONTACT_EMAIL?.trim() || null, childSafetyEmail: env.CHILD_SAFETY_EMAIL?.trim() || env.CONTACT_EMAIL?.trim() || null, appName: env.APP_NAME?.trim() || 'Waypoint',
     didit: diditSet.length === diditKeys.length ? { apiKey: env.DIDIT_API_KEY!.trim(), workflowId: env.DIDIT_WORKFLOW_ID!.trim(), webhookSecret: env.DIDIT_WEBHOOK_SECRET!.trim(), baseUrl: env.DIDIT_BASE_URL?.trim() || null, minScore, monthlyCap, returnUrl: env.VERIFY_RETURN_URL?.trim() || 'sidequest://safety/verify' } : null,
   };
 }

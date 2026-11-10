@@ -32,7 +32,7 @@ function NewActivity() {
         <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Back" hitSlop={12}><Ionicons name="chevron-back" size={26} color={colors.text} /></Pressable>
         <AppText variant="headline" accessibilityRole="header">Host an activity</AppText>
       </Row>
-      <Card><AppText variant="caption">Activities are public: anyone on SideQuest can see and join them. Choose a public venue and keep personal details out of the description.</AppText></Card>
+      <Card><AppText variant="caption">Activities are public: anyone on Waypoint can see and join them. Choose a public venue and keep personal details out of the description.</AppText></Card>
       <Spacer />
       <AppText variant="title">What kind?</AppText><Spacer h={8} />
       <Wrap>{ACTIVITY_CATEGORIES.map((c) => <Chip key={c.id} label={c.label} selected={f.category === c.id} onPress={() => set({ category: c.id })} />)}</Wrap>

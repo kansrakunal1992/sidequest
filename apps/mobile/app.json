@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "SideQuest",
+    "name": "Waypoint",
     "slug": "sidequest",
     "scheme": "sidequest",
     "version": "0.1.0",
@@ -41,14 +41,14 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "SideQuest uses the photos you choose for your profile. Only the photos you pick are shared.",
+          "photosPermission": "Waypoint uses the photos you choose for your profile. Only the photos you pick are shared.",
           "microphonePermission": false
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "SideQuest uses your approximate location to find people and plans near you. We never store your exact position."
+          "locationWhenInUsePermission": "Waypoint uses your approximate location to find people and plans near you. We never store your exact position."
         }
       ],
       [

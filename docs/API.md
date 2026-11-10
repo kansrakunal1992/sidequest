@@ -1,4 +1,4 @@
-# SideQuest API (Railway) - v1
+# Waypoint API (Railway) - v1
 
 All routes except `/healthz` need `Authorization: Bearer <Supabase access token>`. Bodies are JSON. Errors: `{ "error": "code", "detail"?: "..." }`.
 Everything that touches Likes, profiles, chat messages and photos goes directly to Supabase (row level security). This API owns the parts that need rules, rate limits or secrets.

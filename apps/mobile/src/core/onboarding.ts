@@ -86,7 +86,7 @@ export function nameProblem(raw: string): string | null {
   const n = raw.trim();
   if (n.length < LIMITS.nameMin) return `Your name needs at least ${LIMITS.nameMin} characters.`;
   if (n.length > LIMITS.nameMax) return `Keep your name under ${LIMITS.nameMax} characters.`;
-  if (/@|https?:|www\.|\.com\b/i.test(n) || /\d{6,}/.test(n.replace(/[\s-]/g, ''))) return 'Please leave contact details out of your name. You can chat inside SideQuest.';
+  if (/@|https?:|www\.|\.com\b/i.test(n) || /\d{6,}/.test(n.replace(/[\s-]/g, ''))) return 'Please leave contact details out of your name. You can chat inside Waypoint.';
   return null;
 }
 
@@ -98,7 +98,7 @@ export function validateStep(step: Step, s: OnboardingState, now: Date): string[
       let age: number;
       try { age = ageOn(s.dob, now); } catch { e.push('That date does not look right.'); break; }
       if (age > 110) e.push('That date does not look right.');
-      else if (!isAdult(s.dob, now)) e.push('SideQuest is for adults. You need to be 18 or over.');
+      else if (!isAdult(s.dob, now)) e.push('Waypoint is for adults. You need to be 18 or over.');
       break;
     }
     case 'basics': {

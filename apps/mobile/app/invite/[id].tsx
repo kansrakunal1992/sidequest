@@ -75,7 +75,7 @@ export default function InviteDetail() {
 
         {inv.state === 'too_new' && party === 'sender' ? <><Spacer /><Card><AppText>{name} is not ready to schedule something yet, but may be open to getting to know you. There is nothing you need to do. If they would like to say hello, they will.</AppText></Card></> : null}
         {inv.state === 'too_new' && party === 'recipient' ? <><Spacer /><Card><AppText variant="caption">You told them you are not ready to schedule yet. You can say hello when you feel like it, or suggest a time.</AppText></Card></> : null}
-        {confirmed && isCall ? <><Spacer /><Card><AppText variant="caption">This is a {FORMAT_LABELS[inv.format as Format].toLowerCase()}. In-app calling arrives in a later update. Until then, chat in SideQuest at the agreed time.</AppText></Card></> : null}
+        {confirmed && isCall ? <><Spacer /><Card><AppText variant="caption">This is a {FORMAT_LABELS[inv.format as Format].toLowerCase()}. In-app calling arrives in a later update. Until then, chat in Waypoint at the agreed time.</AppText></Card></> : null}
 
         <Spacer />
         {actions.includes('accept') ? <><Button label="Accept" loading={busy === 'accept'} onPress={() => void run('accept', () => api.accept(inv.id))} /><Spacer h={10} /></> : null}

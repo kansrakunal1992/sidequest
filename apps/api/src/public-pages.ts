@@ -107,7 +107,7 @@ export const DELETE_SCRIPT = String.raw`
   }
   $('send').addEventListener('click', async function () {
     email = $('email').value.trim(); if (!email) return;
-    try { await post(cfg.supabaseUrl + '/auth/v1/otp', { email: email, create_user: false }); $('step2').hidden = false; msg('If that email has a SideQuest account, a code is on its way.', false); } catch (e) { msg('Something went wrong. Please try again, or email us.', true); }
+    try { await post(cfg.supabaseUrl + '/auth/v1/otp', { email: email, create_user: false }); $('step2').hidden = false; msg('If that email has a Waypoint account, a code is on its way.', false); } catch (e) { msg('Something went wrong. Please try again, or email us.', true); }
   });
   $('verify').addEventListener('click', async function () {
     try {

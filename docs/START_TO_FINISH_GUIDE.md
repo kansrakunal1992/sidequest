@@ -1,4 +1,4 @@
-# SideQuest: from the zip file to Google Play (baby-step guide)
+# Waypoint: from the zip file to Google Play (baby-step guide)
 
 You have done nothing yet. That is fine. This guide assumes **nothing is installed and no accounts exist**. Follow it top to bottom. Tick the boxes (`☐` → `☑`) as you go. Do not skip steps.
 
@@ -229,7 +229,7 @@ The app signs people in with a **6-digit code sent by email** (no passwords).
 * **Authentication → Sign In / Providers → Email:** make sure **Email** is **enabled** and **Confirm email** is **on**.
 * **Authentication → Email Templates.** There are two templates that matter: **Confirm signup** (sent to brand-new people) and **Magic Link** (sent to people who already have an account). Edit **both** so the body contains the code. Replace the body with:
 ```
-<h2>Your SideQuest code</h2>
+<h2>Your Waypoint code</h2>
 <p>Enter this code in the app: <strong>{{ .Token }}</strong></p>
 <p>If you did not ask for this, ignore this email.</p>
 ```
@@ -237,7 +237,7 @@ Click **Save** on each.
 
 ☐ **Step 4.9. Set up a real email sender (important).** Supabase's built-in email sender is **only for testing**: it has a very small limit and, on a project without your own sender, it may send only to people on your Supabase team. Real users would never get their codes.
 * In **Brevo**: *SMTP & API* → copy the **SMTP server** (usually `smtp-relay.brevo.com`), **port** `587`, your **login**, and create an **SMTP key** (this is the password). Make sure the sender address you will use is verified in Brevo.
-* In **Supabase**: **Authentication → Emails → SMTP Settings** (name may differ slightly) → turn on **Custom SMTP** → enter the host, port 587, username, password (the SMTP key), **Sender email** (your verified address) and **Sender name** `SideQuest` → Save.
+* In **Supabase**: **Authentication → Emails → SMTP Settings** (name may differ slightly) → turn on **Custom SMTP** → enter the host, port 587, username, password (the SMTP key), **Sender email** (your verified address) and **Sender name** `Waypoint` → Save.
 * Test it later in Part 7 by signing in with your own email.
 
 ☐ **Step 4.10.** *Authentication → Rate Limits*: leave the defaults for now.
@@ -314,7 +314,7 @@ The worker is the part that runs on a timer: reminders, sending check-in alerts,
 
 ## PART 6. Moderator page and first sign-in test of the server (20 minutes)
 
-You cannot sign in to the moderator page until your own account exists, so this part continues in Part 8. For now just open `https://YOUR-RAILWAY-ADDRESS/admin` and ✅ confirm you see a page titled "SideQuest moderation" with a sign-in box.
+You cannot sign in to the moderator page until your own account exists, so this part continues in Part 8. For now just open `https://YOUR-RAILWAY-ADDRESS/admin` and ✅ confirm you see a page titled "Waypoint moderation" with a sign-in box.
 
 ---
 
@@ -359,7 +359,7 @@ eas build -p android --profile preview
 * It uploads the project and builds in the cloud. **Wait about 15–25 minutes** (a queue is normal on the free plan).
 * ✅ At the end you get a **link and QR code** to the APK. ❌ A build error: send me the last 40 lines.
 
-☐ **Step 7.7. Install it on your phone.** Open the link on your phone (or scan the QR code). Download the file, open it. Android will ask to allow **"install unknown apps"** for your browser: allow it, install, open **SideQuest**.
+☐ **Step 7.7. Install it on your phone.** Open the link on your phone (or scan the QR code). Download the file, open it. Android will ask to allow **"install unknown apps"** for your browser: allow it, install, open **Waypoint**.
 
 ☐ **Step 7.8. First run.**
 1. *Get started* → type your email → **Send code**.
@@ -487,7 +487,7 @@ Developer verification (Google's newer system that links apps to verified develo
 
 ### 11B. Create the app
 
-☐ **Step 11.4.** Play Console → **Create app**. App name **SideQuest**. Default language. **App** (not Game). **Free**. Tick the declarations. *Create app*.
+☐ **Step 11.4.** Play Console → **Create app**. App name **Waypoint**. Default language. **App** (not Game). **Free**. Tick the declarations. *Create app*.
 ☐ **Step 11.5.** The **Dashboard** now shows a checklist of tasks. You will do each of them below.
 
 ### 11C. "App content" forms (these are the ones people get wrong)
@@ -498,11 +498,11 @@ Find them under **Policy and programs → App content** (or the Dashboard checkl
 ☐ **Step 11.7. Ads:** *No, my app does not contain ads.*
 ☐ **Step 11.8. App access** (how Google's reviewers get in). Choose *All or some functionality is restricted* → add instructions like:
 ```
-SideQuest signs in with a one-time code sent by email (no passwords).
+Waypoint signs in with a one-time code sent by email (no passwords).
 Reviewer sign-in: open the app, tap Get started, enter sidequest.review@gmail.com,
 then open https://mail.google.com, sign in with:
   email: sidequest.review@gmail.com    password: <the password you chose in Step 1.9>
-and enter the 6-digit code from the newest email from SideQuest.
+and enter the 6-digit code from the newest email from Waypoint.
 The account is already set up for review.
 ```
 Use the reviewer mailbox from Step 1.9. **Before you submit**, sign in once yourself with that address and finish onboarding so the account is ready (and approve its photo in `/admin`).
@@ -543,7 +543,7 @@ Google's tracks, in order: **Internal testing → Closed testing → (apply) →
 
 ☐ **Step 12.1.** Play Console → **Testing → Internal testing → Create new release**. Upload the **`.aab`** from Step 10.2. Name it `0.1.0`. *Save → Review release → Start rollout.*
 ☐ **Step 12.2.** **Testers** tab: create an email list with **your own Gmail** and save.
-☐ **Step 12.3.** Copy the **opt-in link**, open it on your phone **logged in with that Gmail**, tap **Become a tester**, then install SideQuest **from Google Play**. ✅ Do the Part 7 checks again on this Play-installed build (sign-in, onboarding, photos, a chat, a plan).
+☐ **Step 12.3.** Copy the **opt-in link**, open it on your phone **logged in with that Gmail**, tap **Become a tester**, then install Waypoint **from Google Play**. ✅ Do the Part 7 checks again on this Play-installed build (sign-in, onboarding, photos, a chat, a plan).
 If anything differs from the APK you tested earlier, tell me.
 
 ### 12B. Closed test (this is the mandatory 14 days for new personal accounts)
@@ -551,7 +551,7 @@ If anything differs from the APK you tested earlier, tell me.
 ☐ **Step 12.4.** **Testing → Closed testing → Create track** (call it `Friends`) → create a release with the same (or newer) AAB → *Start rollout*.
 ☐ **Step 12.5.** **Recruit at least 12 real people** with Android phones (friends, family, colleagues). Aim for **15–20**, because people drop out. Each needs a **Google account email**.
 ☐ **Step 12.6.** In the closed track's **Testers** tab, add their emails (a list or a Google Group). Send each person the **opt-in link** with these instructions:
-> "Open this link on your Android phone, tap *Become a tester*, then install SideQuest from Google Play. Please keep it installed for the next 14 days and open it a few times. Tell me anything that feels wrong."
+> "Open this link on your Android phone, tap *Become a tester*, then install Waypoint from Google Play. Please keep it installed for the next 14 days and open it a few times. Tell me anything that feels wrong."
 ☐ **Step 12.7. Keep them opted in for 14 days in a row.** At least **12** must stay opted in **continuously for 14 days**. The Console shows a counter. If it drops below 12, the clock restarts, so keep recruiting extras. (Google says open testing and internal testing do not count; only closed testing does.)
 ☐ **Step 12.8. Use those 14 days properly.** Fix real problems people report. Upload an **updated build** (increase the version by running a new production build) at least once: Google's production questionnaire asks what you learned and fixed, and "shipped an update because of feedback" is a strong answer.
 ☐ **Step 12.9. Apply for production.** After the 14 days, the Dashboard shows **Apply for production**. Answer the questions about your testing, your app and its readiness, honestly and specifically (how many testers, what feedback, what you fixed, how moderation works). Google reviews, normally within about a week. If Google rejects, the closed test restarts with the same testers and they tell you why.
@@ -621,13 +621,13 @@ Security section: **Data is encrypted in transit: Yes. Users can request data de
 
 ## APPENDIX C. Store listing text (safe wording)
 
-**App name:** `SideQuest: Meet & Do Things`
+**App name:** `Waypoint: Meet & Do Things`
 
 **Short description (80):** `Meet people and join real plans near you. Free for everyone, always.`
 
 **Full description (draft):**
 ```
-SideQuest is a free app for adults (18+) who want to meet people and actually do things together.
+Waypoint is a free app for adults (18+) who want to meet people and actually do things together.
 
 CHOOSE YOUR VIBE
 Friendship, dating, adventures and more. You pick the vibe you are in, and you only appear to people looking for the same thing.
@@ -649,7 +649,7 @@ SAFETY BUILT IN
 FREE, FOREVER
 No paywalls. Likes and visitors are never blurred or hidden.
 
-You must be 18 or older to use SideQuest. By using it you agree to our Terms and Community Guidelines and Privacy Policy.
+You must be 18 or older to use Waypoint. By using it you agree to our Terms and Community Guidelines and Privacy Policy.
 ```
 **Do not use** in the listing: "hookup", "sex", "no strings", "explore freely", "casual encounters", or anything sexual. Do not use another company's name or logo.
 

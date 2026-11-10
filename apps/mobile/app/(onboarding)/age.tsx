@@ -17,7 +17,7 @@ export default function Age() {
     dispatch({ type: 'set', patch: { dob: ok ? `${ny}-${pad(nm)}-${pad(nd)}` : '' } });
   }
   return (
-    <StepFrame step="age" title="When's your birthday?" subtitle="SideQuest is for adults aged 18 and over."
+    <StepFrame step="age" title="When's your birthday?" subtitle="Waypoint is for adults aged 18 and over."
       footerExtra={<Button kind="ghost" label="Sign out" onPress={() => void signOut()} />}>
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <View style={{ flex: 1 }}><TextField label="Day" value={d} onChangeText={(t) => update(t.replace(/\D/g, ''), m, y)} keyboardType="number-pad" maxLength={2} placeholder="DD" /></View>

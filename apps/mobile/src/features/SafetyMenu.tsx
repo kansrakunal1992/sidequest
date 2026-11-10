@@ -35,7 +35,7 @@ export function SafetyMenu({ visible, me, other, name, onClose, onBlocked }: { v
         {step === 'confirm-block' ? (
           <>
             <AppText variant="title">Block {name}?</AppText><Spacer h={8} />
-            <AppText muted>You will not see each other anywhere in SideQuest, and they cannot contact you. They are not told that you blocked them.</AppText>
+            <AppText muted>You will not see each other anywhere in Waypoint, and they cannot contact you. They are not told that you blocked them.</AppText>
             {error ? <ErrorText>{error}</ErrorText> : null}<Spacer />
             <Button label="Block" loading={busy} onPress={() => void run(async () => { await blockUser(me, other); close(); onBlocked(); })} /><Spacer h={8} />
             <Button kind="ghost" label="Cancel" onPress={() => setStep('menu')} />

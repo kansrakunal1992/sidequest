@@ -1,11 +1,11 @@
 > **Newest handoff: `docs/HANDOFF_WAYPOINT.md`** (v12 checkpoint, includes a kickoff prompt for a fresh chat). This file is the older, longer reference.
 
-# SideQuest: handover notes for a fresh session
+# Waypoint: handover notes for a fresh session
 
 (See also the paste-ready prompt the previous session gave the owner. This file is the same information kept with the code.)
 
 ## What this is
-SideQuest: a free-forever social and dating app for adults 18+, Android first (Expo / React Native), iOS later. Backend: Supabase (Postgres + Auth + Storage + Realtime) with row level security, plus a Node API and worker on Railway. Brand reference: sparkle logo, midnight navy `#100D20`, purple `#713BF2`, tagline "People, plans, possibilities". Six vibes: Dating, Hookups, Friendship, Adventures, Post-Marital, Experiment. Core ideas: the invitation is the atomic unit, every consumer feature is free, safety is a foundation.
+Waypoint: a free-forever social and dating app for adults 18+, Android first (Expo / React Native), iOS later. Backend: Supabase (Postgres + Auth + Storage + Realtime) with row level security, plus a Node API and worker on Railway. Brand reference: sparkle logo, midnight navy `#100D20`, purple `#713BF2`, tagline "People, plans, possibilities". Six vibes: Dating, Hookups, Friendship, Adventures, Post-Marital, Experiment. Core ideas: the invitation is the atomic unit, every consumer feature is free, safety is a foundation.
 
 ## Repository map
 - `packages/shared`: pure TypeScript rules used everywhere (modes, contact rules, 18+ gate, invite state machine, ICS, rate limits, privacy rules, roulette grouping, activity categories, game banks, notification kinds). 35 tests.

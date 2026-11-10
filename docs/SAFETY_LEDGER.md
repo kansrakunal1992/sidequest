@@ -1,6 +1,6 @@
 # Safety ledger (working notes for the final trust-and-quality design)
 
-You asked for a dedicated design at 100% on keeping SideQuest high quality, so people who want quality get quality and bad actors cannot ruin it. This is the running inventory of what already exists, so the final design builds on it instead of repeating it.
+You asked for a dedicated design at 100% on keeping Waypoint high quality, so people who want quality get quality and bad actors cannot ruin it. This is the running inventory of what already exists, so the final design builds on it instead of repeating it.
 
 ## Already built, and where
 | Safeguard | Where |
@@ -55,7 +55,7 @@ You asked for a dedicated design at 100% on keeping SideQuest high quality, so p
 - A person under a suspension can request deletion, be deleted after 7 days, and register again with the same email: only bans are remembered (`banned_identifiers`). Reports about a deleted person lose their link to the person (`reported_user_id` becomes null), so evidence does not follow them.
 - Deletion removes the messages a person sent from other people's chats (cascade). Safe for privacy, but it also erases evidence of harassment that was never reported.
 - Roulette areas are free text ("Soho" vs "Soho, London" are different places). A real place picker is needed before this scales.
-- Check-in escalation notifies another SideQuest member only; there is no SMS or email path for a contact who does not use the app.
+- Check-in escalation notifies another Waypoint member only; there is no SMS or email path for a contact who does not use the app.
 
 ## Not built yet (feeds the final design)
 - Moderation console, report triage and automatic escalation; repeat-offender detection.

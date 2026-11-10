@@ -1,12 +1,12 @@
 > The complete beginner path (accounts, hosting, store listing) is `docs/START_TO_FINISH_GUIDE.md`. This file is the shorter technical reference for running on a phone.
 
-# Running SideQuest on an Android phone
+# Running Waypoint on an Android phone
 
 You need: Node 22+, pnpm (`corepack enable`), a free Expo account, and an Android phone (or emulator). The API and database from `docs/DEPLOY_RAILWAY.md` should already be running.
 
 ## 1. One-time Supabase settings
 1. **Authentication > Providers > Email**: enable it. Keep "Confirm email" on.
-2. **Authentication > Email Templates > Magic Link**: the app signs in with a one-time code, so make the template show it. Replace the body with something like `Your SideQuest code is {{ .Token }}`.
+2. **Authentication > Email Templates > Magic Link**: the app signs in with a one-time code, so make the template show it. Replace the body with something like `Your Waypoint code is {{ .Token }}`.
 3. Make sure migrations `0001` to `0013` are applied and `supabase/tests/rls_smoke.sql` passes. The app relies on `save_onboarding` / `finish_onboarding` (0005), the discovery, like and visitor functions (0006), chat (0007), and Open Calls, Activities and group chat (0008).
 
 ## 2. Install

@@ -10,7 +10,7 @@ import { loadConfig } from '../src/config.ts';
 import { setup } from './helpers.ts';
 
 const SUPA = 'https://p.supabase.co';
-const LEGAL: LegalConfig = { legalName: 'Acme <b>Ltd</b>', contactEmail: 'hello@acme.test', childSafetyEmail: 'safety@acme.test', supabaseUrl: SUPA, anonKey: 'anon', appName: 'SideQuest' };
+const LEGAL: LegalConfig = { legalName: 'Acme <b>Ltd</b>', contactEmail: 'hello@acme.test', childSafetyEmail: 'safety@acme.test', supabaseUrl: SUPA, anonKey: 'anon', appName: 'Waypoint' };
 
 test('privacy policy covers what Google Play requires and what the app really does', () => {
   const h = privacyHtml(LEGAL, 'N');
@@ -61,7 +61,7 @@ test('HTTP: pages stay OFF until the legal name and contact email are configured
 test('config: pages switch on from LEGAL_NAME and CONTACT_EMAIL; child-safety contact defaults to the main one', () => {
   const base = { DATABASE_URL: 'x', SUPABASE_URL: 'https://a.supabase.co' };
   const c = loadConfig({ ...base, LEGAL_NAME: ' Acme ', CONTACT_EMAIL: 'a@b.c' });
-  assert.deepEqual([c.legalName, c.contactEmail, c.childSafetyEmail, c.appName], ['Acme', 'a@b.c', 'a@b.c', 'SideQuest']);
+  assert.deepEqual([c.legalName, c.contactEmail, c.childSafetyEmail, c.appName], ['Acme', 'a@b.c', 'a@b.c', 'Waypoint']);
   assert.equal(loadConfig({ ...base, LEGAL_NAME: 'Acme', CONTACT_EMAIL: 'a@b.c', CHILD_SAFETY_EMAIL: 's@b.c' }).childSafetyEmail, 's@b.c');
   assert.equal(loadConfig(base).legalName, null);
 });

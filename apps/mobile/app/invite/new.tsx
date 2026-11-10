@@ -39,7 +39,7 @@ export default function NewInvite() {
       <Spacer />
       <AppText variant="title">How?</AppText><Spacer h={8} />
       <Wrap>{FORMATS.map((f) => <Chip key={f} label={FORMAT_LABELS[f]} selected={format === f} onPress={() => setFormat(f)} />)}</Wrap>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}><Ionicons name={FORMAT_ICONS[format] as never} size={16} color={colors.textMuted} /><AppText variant="caption">{format === 'text' || format === 'intro_chat' ? 'Happens in a SideQuest chat at the agreed time.' : 'You will meet at the agreed time. In-app calling arrives in a later update, so you can chat in SideQuest until then.'}</AppText></View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}><Ionicons name={FORMAT_ICONS[format] as never} size={16} color={colors.textMuted} /><AppText variant="caption">{format === 'text' || format === 'intro_chat' ? 'Happens in a Waypoint chat at the agreed time.' : 'You will meet at the agreed time. In-app calling arrives in a later update, so you can chat in Waypoint until then.'}</AppText></View>
       <Spacer />
       <AppText variant="title">When?</AppText><Spacer h={8} />
       <TimePicker value={when} onChange={setWhen} />

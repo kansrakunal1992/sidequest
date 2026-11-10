@@ -47,7 +47,7 @@ export default function Game() {
         <View style={{ flex: 1 }}><Button kind="secondary" label="Not now" loading={busy} onPress={() => void run(async () => { await db.respondGame(s.id, false); router.back(); })} /></View></View></Card> : null}
       {v.phase === 'waiting_accept' ? <Card><AppText>Waiting for them to accept.</AppText></Card> : null}
       {v.phase === 'declined' ? <Card><AppText>They did not want to play this time.</AppText></Card> : null}
-      {v.phase === 'unknown' ? <Card><AppText>This game needs a newer version of SideQuest.</AppText></Card> : null}
+      {v.phase === 'unknown' ? <Card><AppText>This game needs a newer version of Waypoint.</AppText></Card> : null}
       {v.phase === 'play' && current ? (
         <Card>
           <ProgressBar step={v.round + 1} total={GAME_ROUNDS} />

@@ -28,7 +28,7 @@ export async function addToDeviceCalendar(inv: Pick<ApiInvite, 'format' | 'start
   const begin = new Date(inv.startsAt).getTime();
   await IntentLauncher.startActivityAsync('android.intent.action.INSERT', {
     data: 'content://com.android.calendar/events',
-    extra: { title: `${FORMAT_LABELS[inv.format as Format]} with ${withName}`, beginTime: begin, endTime: begin + inv.durationMinutes * 60_000, description: 'Arranged on SideQuest. Open the app for details or to reschedule.' },
+    extra: { title: `${FORMAT_LABELS[inv.format as Format]} with ${withName}`, beginTime: begin, endTime: begin + inv.durationMinutes * 60_000, description: 'Arranged on Waypoint. Open the app for details or to reschedule.' },
   });
 }
 

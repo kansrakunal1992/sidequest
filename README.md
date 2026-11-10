@@ -1,4 +1,4 @@
-# SideQuest
+# Waypoint
 
 People, plans, possibilities. 100% free, forever. Android first, iOS later.
 
@@ -12,7 +12,7 @@ People, plans, possibilities. 100% free, forever. Android first, iOS later.
 
 **Starting from nothing? Follow `docs/START_TO_FINISH_GUIDE.md`: it takes you step by step from downloading the zip to Google Play.**
 
-## V12erify
+## Verify
 ```
 cd packages/shared && node --test test/*.test.ts && npx tsc -p tsconfig.json
 node scripts/check-sql.mjs

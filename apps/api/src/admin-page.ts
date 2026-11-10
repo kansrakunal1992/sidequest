@@ -34,9 +34,9 @@ export function adminPageHtml(o: { nonce: string; supabaseUrl: string; anonKey: 
   const n = o.nonce;
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
-<title>SideQuest moderation</title><style nonce="${n}">${CSS}</style></head>
+<title>Waypoint moderation</title><style nonce="${n}">${CSS}</style></head>
 <body>
-<header><strong>SideQuest moderation</strong><button id="signout" type="button">Sign out</button></header>
+<header><strong>Waypoint moderation</strong><button id="signout" type="button">Sign out</button></header>
 <main>
 <p id="msg" class="ok" role="status"></p>
 <section id="login"><h2>Sign in</h2><p class="muted">Moderators only. Use the email address on your moderator account; you will get a one-time code.</p>

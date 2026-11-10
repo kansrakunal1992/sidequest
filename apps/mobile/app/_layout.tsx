@@ -29,7 +29,7 @@ function Gate() {
   if (profileError && session) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', padding: 24 }}>
-        <AppText variant="title" style={{ textAlign: 'center' }}>Can't reach SideQuest</AppText>
+        <AppText variant="title" style={{ textAlign: 'center' }}>Can't reach Waypoint</AppText>
         <Spacer h={8} /><AppText muted style={{ textAlign: 'center' }}>Check your connection and try again.</AppText>
         <Spacer h={16} /><Button label="Try again" onPress={() => void refreshProfile()} />
       </View>

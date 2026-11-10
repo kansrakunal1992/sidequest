@@ -14,7 +14,7 @@ export default function Welcome() {
         <View style={{ marginTop: spacing.xxl }}>
           <Logo size={72} />
           <Spacer h={spacing.md} />
-          <AppText variant="display" accessibilityRole="header">SideQuest</AppText>
+          <AppText variant="display" accessibilityRole="header">Waypoint</AppText>
           <AppText variant="title" muted>People, plans, possibilities.</AppText>
           <Spacer h={spacing.xl} />
           <AppText>The social playground for adults: for dating, casual connections, friendships and everything in between.</AppText>

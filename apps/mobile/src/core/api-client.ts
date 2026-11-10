@@ -68,7 +68,7 @@ export type ApiClient = ReturnType<typeof createApiClient>;
 export function friendlyError(e: unknown): string {
   const code = e instanceof ApiError ? e.code : 'unknown';
   const map: Record<string, string> = {
-    network_error: 'Could not reach SideQuest. Check your connection and try again.',
+    network_error: 'Could not reach Waypoint. Check your connection and try again.',
     unauthorized: 'Please sign in again.',
     unavailable: 'That person is not available right now.',
     needs_match: 'You will be able to send this once you have matched.',

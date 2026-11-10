@@ -192,7 +192,7 @@ export class InviteService {
     const name = (await this.deps.store.getUserFlags(this.other(inv, actorId)))?.displayName ?? 'someone';
     return ok(generateIcs({
       uid: `invite-${inv.id}@sidequest.app`, title: TITLES[inv.format](name),
-      description: 'Arranged on SideQuest. Open the app for details and to reschedule.',
+      description: 'Arranged on Waypoint. Open the app for details and to reschedule.',
       startsAt: inv.startsAt, durationMinutes: inv.durationMinutes, sequence: inv.sequence,
       status: inv.state === 'cancelled' ? 'CANCELLED' : 'CONFIRMED', now: this.deps.clock(),
     }));

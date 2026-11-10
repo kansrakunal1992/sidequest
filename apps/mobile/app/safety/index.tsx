@@ -30,7 +30,7 @@ export default function SafetyHub() {
         <AppText variant="headline">{code.data ? formatFriendCode(code.data) : '...'}</AppText>
         {code.error || error ? <ErrorText>{code.error ?? error}</ErrorText> : null}
         <Spacer h={8} />
-        <Button label="Share my code" disabled={!code.data} onPress={() => void Share.share({ message: `Add me on SideQuest with this friend code: ${formatFriendCode(code.data ?? '')}` })} />
+        <Button label="Share my code" disabled={!code.data} onPress={() => void Share.share({ message: `Add me on Waypoint with this friend code: ${formatFriendCode(code.data ?? '')}` })} />
         <Spacer h={8} />
         <Button kind="ghost" label="Get a new code" loading={busy} onPress={() => Alert.alert('Get a new code?', 'Your old code stops working. People you already added are not affected.', [{ text: 'Keep it', style: 'cancel' }, { text: 'New code', onPress: () => void run(async () => { await db.resetFriendCode(); void code.reload(); }) }])} />
       </Card>

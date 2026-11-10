@@ -4,7 +4,7 @@ import { uploadPhotos } from './photos';
 import { supabase } from './supabase';
 
 function friendly(error: { code?: string; message?: string }): Error {
-  if (error.code === '23514') return new Error('SideQuest is for adults. You need to be 18 or over.');
+  if (error.code === '23514') return new Error('Waypoint is for adults. You need to be 18 or over.');
   if (error.code === '22023' && error.message) return new Error(error.message.charAt(0).toUpperCase() + error.message.slice(1) + '.');
   return new Error('We could not save your profile. Check your connection and try again.');
 }

@@ -22,7 +22,7 @@ export function restrictedView(state: string, requests: DataRequestRow[]): Restr
     if (del) return { kind: 'deletion_pending', headline: 'Your account is scheduled for deletion', body: 'Nobody can see your profile now. If you change your mind you can cancel before the date below and everything comes back.', canAppeal: false, canCancelDeletion: true, deletesAt: deletionDate(del.requested_at) };
     return { kind: 'closed', headline: 'Your account is closed', body: 'This account has been closed and its data is being or has been removed.', canAppeal: false, canCancelDeletion: false, deletesAt: null };
   }
-  if (state === 'banned') return { kind: 'banned', headline: 'Your account has been closed by our team', body: 'We removed this account to keep SideQuest safe. If you think this was a mistake you can ask for a review. A person reads every appeal.', canAppeal: true, canCancelDeletion: false, deletesAt: null };
+  if (state === 'banned') return { kind: 'banned', headline: 'Your account has been closed by our team', body: 'We removed this account to keep Waypoint safe. If you think this was a mistake you can ask for a review. A person reads every appeal.', canAppeal: true, canCancelDeletion: false, deletesAt: null };
   return { kind: 'suspended', headline: 'Your account is on hold', body: 'Our team paused this account for now. Some holds end by themselves. If you think this was a mistake you can ask for a review. A person reads every appeal.', canAppeal: true, canCancelDeletion: false, deletesAt: null };
 }
 export const APPEAL = { min: 10, max: 1000 };
@@ -54,7 +54,7 @@ export function summarizeData(rows: DataRequestRow[], now: Date): DataSummary {
   return { exportState, exportRequest: latest, deletion, deletesAt: deletion ? deletionDate(deletion.requested_at) : null };
 }
 export const exportStateText: Record<DataSummary['exportState'], string> = {
-  none: 'Get a copy of the information SideQuest holds about you.', preparing: 'Preparing your export. This usually takes a few minutes.',
+  none: 'Get a copy of the information Waypoint holds about you.', preparing: 'Preparing your export. This usually takes a few minutes.',
   ready: 'Your export is ready. The download link works for 5 minutes each time you open it, and the file is kept for 7 days.',
   failed: 'The last export did not work. You can ask for a new one.', expired: 'Your last export has expired. You can ask for a new one.',
 };

@@ -36,7 +36,7 @@ test('every route leads to a screen a signed-in person is allowed to open, and i
   assert.equal(describeNotification('open_call_accepted', { openCallId: U }).route, `/open-call/${U}`);
 });
 test('a kind this app version does not know still shows something harmless', () => {
-  assert.deepEqual(describeNotification('brand_new_kind', { name: 'ZEDNAME' }), { title: 'Update', body: 'Open SideQuest to see what is new.', route: null });
+  assert.deepEqual(describeNotification('brand_new_kind', { name: 'ZEDNAME' }), { title: 'Update', body: 'Open Waypoint to see what is new.', route: null });
 });
 test('inbox ordering: unanswered safety alerts first, then newest first; unread count', () => {
   const n = (id: string, kind: string, at: string, read: string | null = null): NotificationRow => ({ id, kind, payload: {}, read_at: read, created_at: at });
