@@ -62,10 +62,10 @@ if (policies.some(([, , tbl, cmd]) => tbl.endsWith('post_meet_feedback') && cmd 
 }
 const NO_INSERT = ['conversation_invites', 'calendar_entries', 'matches', 'notifications', 'open_calls', 'open_call_participants', 'events', 'event_participants',
   'wingperson_grants', 'wing_suggestions', 'teams', 'team_members', 'double_dates', 'roulette_signups', 'circles', 'circle_members', 'chemistry_sessions', 'chemistry_players', 'chemistry_responses', 'couple_links', 'appeals',
-  'data_requests', 'trusted_contacts', 'meeting_checkins', 'photo_verifications'];
+  'data_requests', 'trusted_contacts', 'meeting_checkins', 'photo_verifications', 'date_ideas'];
 const NO_MODIFY = ['open_calls', 'open_call_participants', 'events', 'event_participants', 'wingperson_grants', 'wing_suggestions', 'teams', 'team_members', 'double_dates', 'roulette_signups',
   'circles', 'circle_members', 'chemistry_sessions', 'chemistry_players', 'chemistry_responses',
-  'data_requests', 'trusted_contacts', 'meeting_checkins', 'photo_verifications'];
+  'data_requests', 'trusted_contacts', 'meeting_checkins', 'photo_verifications', 'date_ideas'];
 for (const t of NO_INSERT) {
   for (const [, name, tbl, cmd] of policies) {
     if (tbl.endsWith(t) && cmd === 'insert') errors.push(`clients must not insert into ${t} (${name}); the API/trigger owns it`);

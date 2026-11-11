@@ -18,3 +18,6 @@ export interface GameSessionRow { id: string; kind: string; state: string; creat
 export interface GamePlayerRow { user_id: string; accepted: boolean }
 export interface GameResponseRow { user_id: string; round: number; answer: unknown }
 export interface ActiveGameRow { session_id: string; kind: string; state: string; created_by: string }
+
+/** Rows from my_date_ideas() and date_ideas_for(). */
+export interface DateIdeasRow { user_id?: string; ideas: string[]; free_window: string | null }

@@ -10,6 +10,7 @@ import { AppText, Button, EmptyState, ErrorText, Row } from '@/design/ui';
 import { discoverPeople, hasFilters, noFilters, passPerson, sendLike, undoLike, undoPass } from '@/lib/discovery';
 import type { Filters } from '@/lib/discovery';
 import { useModes } from '@/lib/modes';
+import { useDateIdeas } from '@/lib/date-ideas';
 import { usePhotoUrls } from '@/lib/photo-urls';
 import { ActionBar } from './ActionBar';
 import { FilterSheet } from './FilterSheet';
@@ -49,6 +50,7 @@ export function PeopleTab() {
 
   const wants = useMemo(() => (current ? deck.queue.slice(0, 14).map((c) => ({ userId: c.userId, modeId: current })) : []), [deck.queue, current]);
   const photos = usePhotoUrls(wants);
+  const ideasFor = useDateIdeas(deck.queue.slice(0, 14).map((c) => c.userId), current ?? null);
 
   async function doSwipe(action: SwipeAction) {
     const top = deckRef.current.queue[0];
@@ -108,9 +110,9 @@ export function PeopleTab() {
         ) : view === 'cards' ? (
           <>
             <View style={{ flex: 1 }}>
-              {second ? <View style={[StyleSheet.absoluteFill, { transform: [{ scale: 0.95 }], opacity: 0.6 }]}><PersonCardView card={second} mode={current} photo={photos[second.userId]?.[0]} /></View> : null}
+              {second ? <View style={[StyleSheet.absoluteFill, { transform: [{ scale: 0.95 }], opacity: 0.6 }]}><PersonCardView card={second} mode={current} photo={photos[second.userId]?.[0]} ideas={ideasFor(second.userId)} /></View> : null}
               <SwipeCard key={top.userId} onSwipe={(a) => void doSwipe(a)} onTap={() => open(top)}>
-                <PersonCardView card={top} mode={current} photo={photos[top.userId]?.[0]} />
+                <PersonCardView card={top} mode={current} photo={photos[top.userId]?.[0]} ideas={ideasFor(top.userId)} />
               </SwipeCard>
             </View>
             <ActionBar onRewind={() => void doRewind()} canRewind={canRewind(deck)} busy={busy} onPass={() => void doSwipe('pass')} onLike={() => void doSwipe('like')} onSpark={() => void doSwipe('spark')} />

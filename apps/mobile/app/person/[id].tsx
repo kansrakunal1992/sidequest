@@ -9,6 +9,7 @@ import { availabilityLabel } from '@/core/reasons';
 import { MODES, colors, radius, spacing } from '@/design/theme';
 import { AppText, Button, Card, Chip, ErrorText, Row, Spacer, Wrap } from '@/design/ui';
 import { ActionBar } from '@/features/ActionBar';
+import { DateIdeasCard } from '@/features/DateIdeasCard';
 import { MatchModal } from '@/features/MatchModal';
 import { SafetyMenu } from '@/features/SafetyMenu';
 import { ensureMatchConversation } from '@/lib/chat';
@@ -83,6 +84,7 @@ export default function PersonScreen() {
               <Card style={{ marginTop: spacing.md }}><AppText variant="caption">{pr.q}</AppText><Spacer h={4} /><AppText variant="title">{pr.a}</AppText></Card>
             </Pressable>
           ))}
+          <DateIdeasCard userId={id} modeId={mode} matched={!!matchId} onPick={(a) => router.push({ pathname: '/invite/new', params: { to: id, mode, name: p.displayName, kind: 'in_person', idea: a } } as never)} />
           {p.interests.length ? <><Spacer /><Wrap>{p.interests.map((i) => <Chip key={i} label={i} />)}</Wrap></> : null}
           <Spacer h={20} />
           {matchId ? <><Button label="Message" onPress={async () => { try { const c = await ensureMatchConversation(matchId); router.push(`/chat/${c}` as never); } catch { setError('Could not open the chat.'); } }} /><Spacer h={10} /></> : null}

@@ -1245,6 +1245,74 @@ end $$;
 reset role;
 delete from blocks;
 
+-- =====================================================================================================
+-- Migration 0018: in-person plans and Date Ideas
+-- =====================================================================================================
+reset role;
+do $$ declare s1 uuid := '00000000-0000-0000-0000-00000000000a'; r1 uuid := '00000000-0000-0000-0000-00000000000e'; begin
+  -- an in-person plan must name an activity, a place and an area (database constraint, in addition to the API)
+  begin
+    insert into conversation_invites (sender_id, recipient_id, mode_id, format, starts_at, timezone, duration_minutes, expires_at)
+    values (s1, r1, 'friendship', 'in_person', now() + interval '2 days', 'Asia/Kolkata', 60, now() + interval '2 days');
+    raise exception 'FAIL: in-person plan without a place was stored';
+  exception when check_violation then null; end;
+  insert into conversation_invites (sender_id, recipient_id, mode_id, format, starts_at, timezone, duration_minutes, expires_at, activity, venue_name, area_label)
+  values (s1, r1, 'friendship', 'in_person', now() + interval '2 days', 'Asia/Kolkata', 60, now() + interval '2 days', 'chai_coffee', 'Blue Tokai', 'Khan Market');
+  begin
+    insert into conversation_invites (sender_id, recipient_id, mode_id, format, starts_at, timezone, duration_minutes, expires_at, activity, venue_name, area_label)
+    values (s1, r1, 'friendship', 'in_person', now() + interval '2 days', 'Asia/Kolkata', 60, now() + interval '2 days', 'x', 'Blue Tokai', 'Khan Market');
+    raise exception 'FAIL: one-character activity stored';
+  exception when check_violation then null; end;
+  delete from conversation_invites where format::text = 'in_person';
+end $$;
+
+-- Date Ideas: written only through the function, validated, and seen only through the profile rules
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000e', true);
+set local role authenticated;
+do $$ begin
+  perform set_date_ideas(array['walk', 'chai_coffee', 'walk'], 'weekends');
+  if (select ideas from my_date_ideas()) <> array['walk', 'chai_coffee'] then raise exception 'FAIL: ideas not de-duplicated in order: %', (select ideas from my_date_ideas()); end if;
+  begin perform set_date_ideas(array['walk', 'chai_coffee', 'movie', 'meal'], null); raise exception 'FAIL: four ideas accepted'; exception when sqlstate '22023' then null; end;
+  begin perform set_date_ideas(array['skydiving'], null); raise exception 'FAIL: unknown idea accepted'; exception when sqlstate '22023' then null; end;
+  begin perform set_date_ideas(array['walk'], 'midnight'); raise exception 'FAIL: unknown window accepted'; exception when sqlstate '22023' then null; end;
+  if (select ideas from my_date_ideas()) <> array['walk', 'chai_coffee'] then raise exception 'FAIL: a refused write changed the ideas'; end if;
+  begin insert into date_ideas (user_id, ideas) values ('00000000-0000-0000-0000-00000000000e', '{walk}') on conflict (user_id) do update set ideas = '{movie}'; raise exception 'FAIL: direct write to date_ideas';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', true);
+set local role authenticated;
+do $$ declare e uuid := '00000000-0000-0000-0000-00000000000e'; begin
+  if (select count(*) from date_ideas) <> 0 then raise exception 'FAIL: another person''s Date Ideas readable from the table'; end if;
+  if not exists (select 1 from date_ideas_for(array[e], 'friendship') d where d.ideas = array['walk', 'chai_coffee'] and d.free_window = 'weekends') then raise exception 'FAIL: Date Ideas not shown in a shared vibe'; end if;
+  if exists (select 1 from date_ideas_for(array[e], 'adventures')) then raise exception 'FAIL: Date Ideas shown in a vibe the viewer is not in'; end if;
+  if exists (select 1 from date_ideas_for(array[auth.uid()], 'friendship')) then raise exception 'FAIL: own row listed as someone else'; end if;
+  insert into blocks (blocker_id, blocked_id) values (auth.uid(), e);
+  if exists (select 1 from date_ideas_for(array[e], 'friendship')) then raise exception 'FAIL: Date Ideas shown through a block'; end if;
+end $$;
+reset role;
+delete from blocks;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', true);
+set local role authenticated;
+do $$ begin
+  if exists (select 1 from date_ideas_for(array['00000000-0000-0000-0000-00000000000e']::uuid[], 'friendship')) then raise exception 'FAIL: Date Ideas shown to someone who is not in that vibe'; end if;
+end $$;
+reset role;
+do $$ declare x jsonb; begin
+  x := export_user_data('00000000-0000-0000-0000-00000000000e');
+  if (x->'date_ideas'->>'free_window') <> 'weekends' then raise exception 'FAIL: export misses Date Ideas: %', x->'date_ideas'; end if;
+  if not (x ? 'invitations') then raise exception 'FAIL: export lost invitations'; end if;
+end $$;
+-- clearing both ideas and the window removes the row
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000e', true);
+set local role authenticated;
+do $$ begin perform set_date_ideas(array[]::text[], null); if exists (select 1 from my_date_ideas()) then raise exception 'FAIL: empty Date Ideas kept a row'; end if; end $$;
+reset role;
+
 -- a banned person cannot simply register again with the same email
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000ee', 'banned@test.local');
 insert into banned_identifiers (email_hash) values (encode(extensions.digest(lower('banned@test.local'), 'sha256'), 'hex'));

@@ -88,7 +88,7 @@ test('invite payload: validation and shape', () => {
   assert.match((buildInvitePayload({ ...base, startsAt: new Date(now.getTime() + 100 * 86_400_000) }, 'UTC', now) as any).error, /90 days/);
   assert.match((buildInvitePayload({ ...base, note: 'x'.repeat(281) }, 'UTC', now) as any).error, /280/);
   assert.equal('note' in (buildInvitePayload(base, 'UTC', now) as any).body, false);
-  assert.equal(FORMATS.length, 5);
+  assert.equal(FORMATS.length, 6);   // includes "in_person"
 });
 test('formatWhen renders in the requested time zone', () => {
   const s = formatWhen('2026-11-01T14:30:00Z', 'UTC');

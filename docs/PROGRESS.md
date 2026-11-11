@@ -87,3 +87,12 @@ cd apps/api && PG_TEST_URL=postgres://... node --test test/pg-integration.test.t
 ## Decisions
 - Name: Waypoint. Bottom tabs: Discover, Circles, Chat, Calendar, Profile. Discover top tabs: People, Open Calls, Activities.
 - Email one-time-code sign-in (no passwords). Rewind and Spark are free and unlimited.
+
+
+## Let's Meet and Date Ideas (v16)
+Built and tested locally, not on a phone or a hosted project. Details and run order: `docs/CHANGES_v16.md`.
+- Built: in-person invitations (activity, public place, area), plan screen with share and safety check-in link, day-before reminder, chat nudge,
+  Date Ideas (editor, profile, swipe cards). Migration `0018_lets_meet.sql`.
+- Still open from the research: intent chips and "who can invite me" controls, visible verification levels, image scanning, alerts for contacts who
+  are not on the app, flake handling, recurring Open Calls, bring-a-friend plans, the people-I-have-met list, and a place picker for roulette.
+- Note: one existing mobile screen test (Wingperson) is timing-sensitive and can fail on a slow machine; re-run it.

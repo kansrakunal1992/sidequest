@@ -65,7 +65,8 @@ export class WindowLimiter {
 export const inviteDto = (i: Invite) => ({
   id: i.id, senderId: i.senderId, recipientId: i.recipientId, modeId: i.modeId, format: i.format, state: i.state,
   proposedBy: i.proposedBy, startsAt: i.startsAt.toISOString(), timezone: i.timezone, durationMinutes: i.durationMinutes,
-  note: i.note, expiresAt: i.expiresAt.toISOString(), conversationId: i.conversationId, createdAt: i.createdAt.toISOString(),
+  note: i.note, activity: i.activity, venueName: i.venueName, areaLabel: i.areaLabel,
+  expiresAt: i.expiresAt.toISOString(), conversationId: i.conversationId, createdAt: i.createdAt.toISOString(),
 });
 
 const MAX_BODY = 32 * 1024;

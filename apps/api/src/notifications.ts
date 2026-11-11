@@ -28,6 +28,7 @@ const COPY: Record<NotificationKind, PushCopy> = {
   invite_cancelled: { title: 'Plan cancelled', body: 'A plan on your calendar was cancelled.', channel: 'invites' },
   invite_expired: { title: 'Invitation expired', body: 'An invitation timed out without a reply.', channel: 'invites' },
   invite_reminder: { title: 'Coming up soon', body: 'You have a plan starting shortly.', channel: 'invites' },
+  invite_day_before: { title: 'Your plan is coming up', body: 'Open Waypoint to check the details, or to reschedule.', channel: 'invites' },
   light_chat_started: { title: 'A friendly hello', body: 'Someone you invited has started a relaxed chat.', channel: 'messages' },
   post_meet_prompt: { title: 'How did it go?', body: 'Two quick private questions help keep everyone safe.', channel: 'safety' },
   roulette_group_ready: { title: 'Your table is ready', body: 'Your Social Roulette group is set. Open the app for details.', channel: 'open_calls' },

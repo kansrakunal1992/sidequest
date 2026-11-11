@@ -20,4 +20,4 @@ export function setup() {
 
 export const input = (o: Partial<CreateInviteInput> = {}): CreateInviteInput => ({
   recipientId: B, modeId: 'serious_dating', format: 'virtual_coffee',
-  startsAt: new Date(T0.getTime() + 2 * 3600_000), timezone: 'Asia/Kolkata', durationMinutes: 20, note: 'Coffee?', ...o });
+  startsAt: new Date(T0.getTime() + 2 * 3600_000), timezone: 'Asia/Kolkata', durationMinutes: 20, note: 'Coffee?', activity: null, venueName: null, areaLabel: null, ...o });

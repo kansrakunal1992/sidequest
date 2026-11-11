@@ -2,7 +2,7 @@
 // Each call is written on ONE line as  call<Type>('function_name', { p_arg: value })  so test/db-contract.test.ts can check the function name
 // and every argument name against the real migration SQL (a wrong name would otherwise only fail on a phone).
 import { supabase } from '@/lib/supabase';
-import type { ActiveGameRow, BlockRow, CheckinRow, CircleEvent, CirclePerson, CircleRow, CoupleRow, DataRequestRow, DoubleDateRow, RouletteRow, TeamRow, TrustedContactRow, WingGrantRow, WingSuggestionRow } from '@/core/db-types';
+import type { ActiveGameRow, BlockRow, DateIdeasRow, CheckinRow, CircleEvent, CirclePerson, CircleRow, CoupleRow, DataRequestRow, DoubleDateRow, RouletteRow, TeamRow, TrustedContactRow, WingGrantRow, WingSuggestionRow } from '@/core/db-types';
 
 export class DbError extends Error { code: string; constructor(code: string, message: string) { super(message); this.code = code; } }
 async function call<T>(name: string, args?: Record<string, unknown>): Promise<T> {
@@ -13,6 +13,10 @@ async function call<T>(name: string, args?: Record<string, unknown>): Promise<T>
 const none = (): void => undefined;
 
 export const db = {
+  // date ideas (up to three activities and a broad free window, shown on a profile)
+  setDateIdeas: (ideas: string[], freeWindow: string | null) => call<void>('set_date_ideas', { p_ideas: ideas, p_window: freeWindow }).then(none),
+  myDateIdeas: () => call<DateIdeasRow[]>('my_date_ideas').then((r) => r[0] ?? null),
+  dateIdeasFor: (ids: string[], mode: string) => call<DateIdeasRow[]>('date_ideas_for', { p_ids: ids, p_mode: mode }),
   // location (the server rounds again; the phone has already rounded to about 1 km)
   setApproxLocation: (lat: number, lng: number) => call<void>('set_approx_location', { p_lat: lat, p_lng: lng }).then(none),
   // circles

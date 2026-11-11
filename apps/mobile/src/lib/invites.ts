@@ -1,8 +1,7 @@
 import * as IntentLauncher from 'expo-intent-launcher';
 import { mapCalendar } from '@/core/mappers';
 import type { ApiInvite } from '@/core/api-client';
-import { FORMAT_LABELS } from '@/core/invite-ui';
-import type { Format } from '@/core/invite-ui';
+import { inviteTitle, placeText } from '@/core/invite-ui';
 import { supabase } from './supabase';
 
 export interface Counterpart { userId: string; displayName: string; age: number; verified: boolean }
@@ -24,11 +23,11 @@ export async function listCalendar() {
 }
 
 /** Opens the phone's own calendar app with the event filled in. No calendar permission and no contact details are involved. */
-export async function addToDeviceCalendar(inv: Pick<ApiInvite, 'format' | 'startsAt' | 'durationMinutes'>, withName: string): Promise<void> {
+export async function addToDeviceCalendar(inv: Pick<ApiInvite, 'format' | 'startsAt' | 'durationMinutes' | 'activity' | 'venueName' | 'areaLabel'>, withName: string): Promise<void> {
   const begin = new Date(inv.startsAt).getTime();
   await IntentLauncher.startActivityAsync('android.intent.action.INSERT', {
     data: 'content://com.android.calendar/events',
-    extra: { title: `${FORMAT_LABELS[inv.format as Format]} with ${withName}`, beginTime: begin, endTime: begin + inv.durationMinutes * 60_000, description: 'Arranged on Waypoint. Open the app for details or to reschedule.' },
+    extra: { title: inviteTitle(inv, withName), ...(placeText(inv) ? { eventLocation: placeText(inv) } : {}), beginTime: begin, endTime: begin + inv.durationMinutes * 60_000, description: 'Arranged on Waypoint. Open the app for details or to reschedule.' },
   });
 }
 

@@ -299,3 +299,71 @@ test('Safety hub: the Photo verification row appears only when the server has it
   const off = await mount('safety', { mode: 'serious_dating', rpc: { my_friend_code: 'ab12cd34', my_checkins: [] }, globals: { __verification: false } });
   await off.waitFor('AB12 CD34'); await off.settle(100); assert.ok(!off.has('Photo verification'));
 });
+
+// ===== Let's Meet and Date Ideas ================================================================================
+test("Let's Meet: opens on the meetup option, validates, then sends an in-person plan with the activity and place", async () => {
+  const p = await mount('invite-new', { params: { to: U, mode: 'friendship', name: 'Aman', kind: 'in_person' } });
+  await p.waitFor('Make a plan with Aman');
+  assert.ok(p.has('What would you like to do?') && p.has('Chai or coffee') && p.has('Where?') && p.has('For a first meeting') && p.has('Send plan'));
+  assert.ok(p.has('Pick a busy public place for a first meeting.'));
+  await p.click('Send plan'); assert.ok(p.has('Pick a day and time.')); assert.equal(p.calls.filter((c) => c.name === 'createInvite').length, 0);
+  await p.click('Tomorrow evening'); await p.click('Send plan'); assert.ok(p.has('Choose what you would like to do.'));
+  await p.click('Chai or coffee'); await p.click('Send plan'); assert.ok(p.has('Name the place'));
+  await p.type('Place', 'Blue Tokai'); await p.type('Neighbourhood or area', 'Khan Market'); await p.click('Send plan');
+  const call = p.calls.find((c) => c.name === 'createInvite')!;
+  assert.deepEqual([call.body.format, call.body.activity, call.body.venueName, call.body.areaLabel, call.body.recipientId, call.body.modeId], ['in_person', 'chai_coffee', 'Blue Tokai', 'Khan Market', U, 'friendship']);
+  assert.equal(call.body.durationMinutes, 60);
+  assert.deepEqual(p.nav.at(-1), { k: 'replace', x: '/invite/inv1' });
+  noErrors(p);
+});
+test("Let's Meet: a Date Idea pre-selects its activity and length; contact details in the place are refused", async () => {
+  const p = await mount('invite-new', { params: { to: U, mode: 'friendship', name: 'Aman', idea: 'movie' } });
+  await p.waitFor('Make a plan with Aman');
+  await p.click('Tomorrow evening'); await p.type('Place', 'Cafe 9876543210'); await p.type('Neighbourhood or area', 'Delhi'); await p.click('Send plan');
+  assert.ok(p.has('phone numbers')); assert.equal(p.calls.filter((c) => c.name === 'createInvite').length, 0);
+  await p.type('Place', 'PVR Select Citywalk'); await p.click('Send plan');
+  const call = p.calls.find((c) => c.name === 'createInvite')!;
+  assert.deepEqual([call.body.activity, call.body.durationMinutes], ['movie', 150]);
+});
+test('Invite composer: ordinary invitations are unchanged until Meet in person is chosen', async () => {
+  const p = await mount('invite-new', { params: { to: U, mode: 'friendship', name: 'Aman' } });
+  await p.waitFor('Invite Aman');
+  assert.ok(!p.has('Where?') && p.has('Send invitation') && p.has('Meet in person') && p.has('Virtual coffee'));
+  await p.click('Meet in person'); assert.ok(p.has('Where?') && p.has('Make a plan with Aman') && p.has('Send plan'));
+});
+test('Date ideas editor: loads yours, stops at three, and saves through the checked function', async () => {
+  const p = await mount('date-ideas-editor', { rpc: { my_date_ideas: [{ ideas: ['walk'], free_window: 'weekends' }], set_date_ideas: null } });
+  await p.waitFor('Date ideas'); await p.settle(100);
+  await p.click('Chai or coffee'); await p.click('A movie');
+  await p.click('Trivia night', 0); assert.ok(p.has('You can pick up to 3'));
+  await p.click('Save date ideas');
+  const c = p.rpcCalls('set_date_ideas')[0]; assert.deepEqual(c.args, { p_ideas: ['walk', 'chai_coffee', 'movie'], p_window: 'weekends' });
+  assert.ok(p.has('Saved')); noErrors(p);
+});
+test('Date ideas editor: stays out of the way when the database function is missing', async () => {
+  const p = await mount('date-ideas-editor', { rpc: { my_date_ideas: () => { throw Object.assign(new Error('missing'), { code: '42883' }); } } });
+  await p.settle(300); assert.ok(!p.has('Date ideas') && !p.has('Save date ideas'));
+});
+test('Date ideas on a profile: matched people can tap one; unmatched people just see them', async () => {
+  const rows = { date_ideas_for: [{ user_id: 'u1', ideas: ['walk', 'meal'], free_window: 'weekends' }], my_date_ideas: [{ ideas: ['meal'], free_window: null }] };
+  const a = await mount('date-ideas-card', { params: { matched: '1' }, rpc: rows });
+  await a.waitFor('Usually free: weekends');
+  assert.ok(a.has('You both like: Lunch or dinner') && a.has('Tap an idea to suggest a plan.'));
+  assert.deepEqual(a.rpcCalls('date_ideas_for')[0].args, { p_ids: ['u1'], p_mode: 'friendship' });
+  await a.click('A walk'); await a.settle(50); assert.equal(a.win.__picked, 'walk');
+  const b = await mount('date-ideas-card', { params: { matched: '0' }, rpc: rows });
+  await b.waitFor('Plans open up once you have matched.'); assert.ok(!b.has('Tap an idea'));
+  const c = await mount('date-ideas-card', { params: { matched: '1' }, rpc: { date_ideas_for: [], my_date_ideas: [] } });
+  await c.settle(300); assert.ok(!c.has('Date ideas'));
+});
+
+test('Swipe card: shows what they are up for, asks once for the whole batch, and stays plain without ideas', async () => {
+  const a = await mount('card-ideas', { rpc: { date_ideas_for: [{ user_id: 'u1', ideas: ['walk', 'chai_coffee'], free_window: 'weekends' }] } });
+  await a.waitFor('Up for: A walk, Chai or coffee');
+  assert.equal(a.rpcCalls('date_ideas_for').length, 1); assert.deepEqual(a.rpcCalls('date_ideas_for')[0].args, { p_ids: ['u1'], p_mode: 'friendship' });
+  assert.ok(a.has('Aman, 29'));
+  const b = await mount('card-ideas', { rpc: { date_ideas_for: [] } });
+  await b.waitFor('Aman, 29'); await b.settle(200); assert.ok(!b.has('Up for'));
+  const c = await mount('card-ideas', { rpc: { date_ideas_for: () => { throw new Error('missing'); } } });
+  await c.waitFor('Aman, 29'); await c.settle(200); assert.ok(!c.has('Up for')); noErrors(c);
+});

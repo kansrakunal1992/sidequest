@@ -7,6 +7,7 @@ import { PROMPT_LIMITS, PROMPT_QUESTIONS, cleanPrompts, validateModeText } from 
 import type { PromptAnswer } from '@/core/prompts';
 import { MODES, colors, radius, spacing } from '@/design/theme';
 import { parsePhotoIssues, photoIssueLines } from '@/core/photo-issues';
+import { DateIdeasEditor } from '@/features/DateIdeasEditor';
 import { db } from '@/lib/db';
 import { AppText, Button, Card, Chip, ErrorText, Row, Screen, Spacer, TextField, Wrap } from '@/design/ui';
 import { useModes } from '@/lib/modes';
@@ -108,6 +109,9 @@ export default function EditProfile() {
         })}</Wrap>
         <Spacer /><Button label="Save" onPress={saveBasics} loading={busy} />
       </Card>
+
+      <Spacer />
+      <DateIdeasEditor />
 
       <Spacer />
       <Card>

@@ -4,12 +4,16 @@ export class ApiError extends Error {
 }
 
 export interface ApiInvite {
-  id: string; senderId: string; recipientId: string; modeId: string; format: 'text' | 'voice' | 'video' | 'virtual_coffee' | 'intro_chat';
+  id: string; senderId: string; recipientId: string; modeId: string; format: 'text' | 'voice' | 'video' | 'virtual_coffee' | 'intro_chat' | 'in_person';
   state: string; proposedBy: 'sender' | 'recipient' | null; startsAt: string; timezone: string; durationMinutes: number;
   note: string | null; expiresAt: string; conversationId: string | null; createdAt: string;
+  /** In-person plans only; null for every other format. */
+  activity?: string | null; venueName?: string | null; areaLabel?: string | null;
 }
 export interface CreateInviteBody {
   recipientId: string; modeId: string; format: ApiInvite['format']; startsAt: string; timezone: string; durationMinutes: number; note?: string;
+  /** Required when format is 'in_person'. */
+  activity?: string; venueName?: string; areaLabel?: string;
 }
 
 export function createApiClient(o: { baseUrl: string; getToken: () => Promise<string | null>; fetchFn?: typeof fetch }) {
@@ -76,7 +80,12 @@ export function friendlyError(e: unknown): string {
     non_match_limit: 'You have sent a lot of invitations today. Try again tomorrow, or invite people you have matched with.',
     daily_limit: 'You have reached today\u2019s invitation limit. Try again tomorrow.',
     rate_limited: 'Slow down a little and try again in a moment.',
-    start_time_out_of_range: 'Pick a time between 5 minutes and 90 days from now.',
+    start_time_out_of_range: 'Pick a time between 5 minutes and 90 days from now. A meetup needs at least an hour of notice.',
+    invalid_activity: 'Choose what you would like to do.',
+    venue_required: 'Name the place, for example a cafe or a market.',
+    area_required: 'Add the neighbourhood or area.',
+    place_too_long: 'Keep the place and area under 80 characters each.',
+    place_contact_details: 'Please leave phone numbers, links and handles out of the place. You can chat inside Waypoint.',
     invalid_transition: 'This invitation has already changed. Pull to refresh.',
     too_early: 'It is a bit early. You can join from 10 minutes before the start.',
     call_ended: 'This call window has ended.',

@@ -1,4 +1,4 @@
-import { canStartContact, evaluateInviteRate, generateIcs, transitionInvite } from '@sidequest/shared';
+import { IN_PERSON_MIN_LEAD_MINUTES, canStartContact, evaluateInviteRate, generateIcs, meetTitle, transitionInvite } from '@sidequest/shared';
 import type { InviteEvent, Party } from '@sidequest/shared';
 import type { Store } from './store.ts';
 import type { CreateInviteInput, RescheduleInput } from './validate.ts';
@@ -23,7 +23,11 @@ const TITLES: Record<InviteFormat, (n: string) => string> = {
   video: (n) => `Video call with ${n}`,
   virtual_coffee: (n) => `Virtual coffee with ${n}`,
   intro_chat: (n) => `Intro chat with ${n}`,
+  in_person: (n) => `Meet ${n}`,
 };
+/** In-person plans are named after the activity ("A walk with Aman"); every other format keeps its fixed title. */
+const titleFor = (inv: Pick<Invite, 'format' | 'activity'>, name: string): string =>
+  inv.format === 'in_person' ? meetTitle(inv.activity, name) : TITLES[inv.format](name);
 
 export class InviteService {
   deps: InviteDeps;
@@ -54,6 +58,8 @@ export class InviteService {
     if (actorId === input.recipientId) return err(400, 'cannot_invite_self');
     const slot = this.checkSlot(now, input.startsAt);
     if (!slot.ok) return slot;
+    // A meetup needs a little notice so the other person can answer and a friend can be told.
+    if (input.format === 'in_person' && input.startsAt.getTime() - now.getTime() < IN_PERSON_MIN_LEAD_MINUTES * 60_000) return err(400, 'start_time_out_of_range');
 
     const [sender, recipient] = await Promise.all([store.getUserFlags(actorId), store.getUserFlags(input.recipientId)]);
     if (!sender || sender.state !== 'active') return err(403, 'account_restricted');
@@ -71,6 +77,8 @@ export class InviteService {
       recipientAcceptsIntros: recipient.acceptsIntros,
     });
     if (!decision.allowed) return decision.reason === 'needs_match' ? err(403, 'needs_match') : err(404, 'unavailable');
+    // Meeting in person is only offered between people who have matched in this vibe.
+    if (input.format === 'in_person' && !matched) return err(403, 'needs_match');
 
     const [sent, pending] = await Promise.all([
       store.countSentSince(actorId, new Date(now.getTime() - DAY_MS)),
@@ -82,7 +90,8 @@ export class InviteService {
     const inv = await store.insertInvite({
       senderId: actorId, recipientId: input.recipientId, modeId: input.modeId, format: input.format,
       state: 'pending', proposedBy: null, startsAt: input.startsAt, timezone: input.timezone,
-      durationMinutes: input.durationMinutes, note: input.note, sequence: 0,
+      durationMinutes: input.durationMinutes, note: input.note,
+      activity: input.activity, venueName: input.venueName, areaLabel: input.areaLabel, sequence: 0,
       expiresAt: this.expiryFor(now, input.startsAt), conversationId: null,
     });
     await this.deps.notify({ userId: inv.recipientId, kind: 'invite_received', payload: { inviteId: inv.id } });
@@ -191,7 +200,8 @@ export class InviteService {
     if (!['accepted', 'rescheduled', 'cancelled'].includes(inv.state)) return err(409, 'no_calendar_event');
     const name = (await this.deps.store.getUserFlags(this.other(inv, actorId)))?.displayName ?? 'someone';
     return ok(generateIcs({
-      uid: `invite-${inv.id}@sidequest.app`, title: TITLES[inv.format](name),
+      uid: `invite-${inv.id}@sidequest.app`, title: titleFor(inv, name),
+      ...(inv.venueName && inv.areaLabel ? { location: `${inv.venueName}, ${inv.areaLabel}` } : {}),
       description: 'Arranged on Waypoint. Open the app for details and to reschedule.',
       startsAt: inv.startsAt, durationMinutes: inv.durationMinutes, sequence: inv.sequence,
       status: inv.state === 'cancelled' ? 'CANCELLED' : 'CONFIRMED', now: this.deps.clock(),
@@ -218,7 +228,7 @@ export class InviteService {
     const endsAt = new Date(inv.startsAt.getTime() + inv.durationMinutes * 60_000);
     for (const [userId, otherId] of [[inv.senderId, inv.recipientId], [inv.recipientId, inv.senderId]] as const) {
       const name = (await store.getUserFlags(otherId))?.displayName ?? 'someone';
-      await store.upsertCalendar({ userId, sourceType: 'invite', sourceId: inv.id, title: TITLES[inv.format](name), startsAt: inv.startsAt, endsAt, status, sequence: inv.sequence });
+      await store.upsertCalendar({ userId, sourceType: 'invite', sourceId: inv.id, title: titleFor(inv, name), startsAt: inv.startsAt, endsAt, status, sequence: inv.sequence });
     }
   }
 }

@@ -51,3 +51,20 @@ export function sendGate(messages: ChatMessage[], me: string): { allowed: boolea
   if (!theirs && mine === FIRST_CONTACT_LIMIT - 1) return { allowed: true, hint: 'One more message until they reply.' };
   return { allowed: true, hint: null };
 }
+
+export interface PlanNudge { reason: 'ready' | 'quiet'; title: string; body: string }
+const QUIET_AFTER_MS = 24 * 3_600_000;
+/**
+ * A gentle prompt to turn a chat into a plan. It appears only after a real back-and-forth, never while a plan already exists,
+ * never after it was dismissed, and it only suggests: nothing is sent unless the person taps through and sends it.
+ */
+export function planNudge(o: { messages: Pick<ChatMessage, 'senderId' | 'createdAt'>[]; me: string; now: Date; hasOpenPlan: boolean; dismissed: boolean; eligible: boolean }): PlanNudge | null {
+  if (!o.eligible || o.hasOpenPlan || o.dismissed) return null;
+  const mine = o.messages.filter((m) => m.senderId === o.me).length;
+  const theirs = o.messages.length - mine;
+  if (mine < 1 || theirs < 1) return null;
+  const last = Math.max(...o.messages.map((m) => m.createdAt.getTime()));
+  if (o.messages.length >= 4 && o.now.getTime() - last >= QUIET_AFTER_MS) return { reason: 'quiet', title: 'Chat gone quiet?', body: 'A plan can pick it back up. Suggest something simple, like a chai.' };
+  if (mine >= 2 && theirs >= 2 && o.messages.length >= 6) return { reason: 'ready', title: 'Enjoying this chat?', body: 'Turn it into a plan. Pick a place, and they can say yes or suggest another time.' };
+  return null;
+}

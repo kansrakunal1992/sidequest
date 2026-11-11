@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { friendlyError } from '@/core/api-client';
 import type { ApiInvite } from '@/core/api-client';
-import { FORMAT_ICONS, FORMAT_LABELS, availableActions, formatWhen, myParty, otherId, stateSummary } from '@/core/invite-ui';
+import { FORMAT_ICONS, FORMAT_LABELS, availableActions, formatWhen, inviteHeadline, isInPerson, myParty, otherId, placeText, planShareMessage, stateSummary } from '@/core/invite-ui';
+import { FIRST_MEET_TIPS } from '@sidequest/shared';
 import type { Format, InviteAction } from '@/core/invite-ui';
 import { colors, spacing } from '@/design/theme';
 import { AppText, Button, Card, ErrorText, Row, Spacer } from '@/design/ui';
@@ -62,10 +63,11 @@ export default function InviteDetail() {
       <ScrollView contentContainerStyle={{ padding: spacing.xl }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} tintColor={th.highlight} />}>
         <Row style={{ marginBottom: spacing.md }}>
           <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Back" hitSlop={12}><Ionicons name="chevron-back" size={26} color={colors.text} /></Pressable>
-          <AppText variant="headline" accessibilityRole="header">{FORMAT_LABELS[inv.format as Format]}</AppText>
+          <AppText variant="headline" accessibilityRole="header">{inviteHeadline(inv)}</AppText>
         </Row>
         <Card>
           <Row><Ionicons name={FORMAT_ICONS[inv.format as Format] as never} size={20} color={th.highlight} /><Text style={{ color: colors.text, fontSize: 18, fontWeight: '800' }}>{party === 'sender' ? `With ${name}` : `From ${name}`}</Text>{who?.verified ? <Ionicons name="checkmark-circle" size={16} color={colors.cyan} /> : null}</Row>
+          {placeText(inv) ? <><Spacer h={8} /><Row><Ionicons name="location" size={16} color={th.highlight} /><Text style={{ color: colors.text, fontWeight: '700' }}>{placeText(inv)}</Text></Row></> : null}
           <Spacer h={8} /><AppText variant="title">{formatWhen(inv.startsAt)}</AppText>
           <AppText muted variant="caption">{inv.durationMinutes} minutes · shown in your time zone</AppText>
           {inv.note ? <><Spacer h={10} /><AppText>"{inv.note}"</AppText></> : null}
@@ -75,6 +77,15 @@ export default function InviteDetail() {
 
         {inv.state === 'too_new' && party === 'sender' ? <><Spacer /><Card><AppText>{name} is not ready to schedule something yet, but may be open to getting to know you. There is nothing you need to do. If they would like to say hello, they will.</AppText></Card></> : null}
         {inv.state === 'too_new' && party === 'recipient' ? <><Spacer /><Card><AppText variant="caption">You told them you are not ready to schedule yet. You can say hello when you feel like it, or suggest a time.</AppText></Card></> : null}
+        {isInPerson(inv) && (inv.state === 'pending' || inv.state === 'reschedule_requested') ? <><Spacer /><Card><AppText variant="caption" style={{ fontWeight: '800', marginBottom: 4 }}>Before you say yes</AppText>{FIRST_MEET_TIPS.map((t) => <AppText key={t} variant="caption">{`\u2022 ${t}`}</AppText>)}</Card></> : null}
+        {confirmed && isInPerson(inv) ? (
+          <><Spacer /><Card>
+            <AppText variant="title">Your plan is set</AppText><Spacer h={4} />
+            <AppText variant="caption">Tell someone you trust where you will be. You can also set a safety check-in: if you do not answer it, your trusted contact, if they use Waypoint, is told. If the place needs to change, cancel this and make a new plan. Suggesting another time keeps the place.</AppText><Spacer h={10} />
+            <Button label="Share my plan" onPress={() => { const m = planShareMessage(inv, name); if (m) void Share.share({ message: m }).catch(() => setError('Could not open sharing.')); }} /><Spacer h={8} />
+            <Button kind="secondary" label="Set a safety check-in" onPress={() => router.push('/safety/trusted' as never)} />
+          </Card></>
+        ) : null}
         {confirmed && isCall ? <><Spacer /><Card><AppText variant="caption">This is a {FORMAT_LABELS[inv.format as Format].toLowerCase()}. In-app calling arrives in a later update. Until then, chat in Waypoint at the agreed time.</AppText></Card></> : null}
 
         <Spacer />

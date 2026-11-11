@@ -1,12 +1,15 @@
+import { IN_PERSON_MIN_LEAD_MINUTES, buildPlanShareText, hasContactDetails, isMeetActivity, meetActivityLabel, meetTitle, validateMeetPlace, PLACE_ERROR_TEXT } from '@sidequest/shared';
 import { transitionInvite } from '@sidequest/shared';
 import type { InviteEvent, InviteState } from '@sidequest/shared';
 import type { ApiInvite, CreateInviteBody } from './api-client';
 
-export const FORMATS = ['text', 'voice', 'video', 'virtual_coffee', 'intro_chat'] as const;
+export const FORMATS = ['in_person', 'text', 'voice', 'video', 'virtual_coffee', 'intro_chat'] as const;
 export type Format = (typeof FORMATS)[number];
-export const FORMAT_LABELS: Record<Format, string> = { text: 'Text chat', voice: 'Voice call', video: 'Video call', virtual_coffee: 'Virtual coffee', intro_chat: 'Quick intro chat' };
-export const FORMAT_ICONS: Record<Format, string> = { text: 'chatbubble-ellipses', voice: 'call', video: 'videocam', virtual_coffee: 'cafe', intro_chat: 'hand-left' };
+export const FORMAT_LABELS: Record<Format, string> = { text: 'Text chat', voice: 'Voice call', video: 'Video call', virtual_coffee: 'Virtual coffee', intro_chat: 'Quick intro chat', in_person: 'Meet in person' };
+export const FORMAT_ICONS: Record<Format, string> = { text: 'chatbubble-ellipses', voice: 'call', video: 'videocam', virtual_coffee: 'cafe', intro_chat: 'hand-left', in_person: 'walk' };
 export const DURATIONS = [15, 20, 30, 45, 60] as const;
+/** Meeting in person takes longer than a call. */
+export const IN_PERSON_DURATIONS = [60, 90, 120, 180] as const;
 export const NOTE_MAX = 280;
 
 export type Party = 'sender' | 'recipient';
@@ -72,14 +75,42 @@ export function formatWhen(iso: string | Date, tz?: string, locale = 'en-IN'): s
 }
 
 export type PayloadResult = { ok: true; body: CreateInviteBody } | { ok: false; error: string };
-export function buildInvitePayload(i: { recipientId: string; modeId: string; format: Format; startsAt: Date | null; durationMinutes: number; note: string }, tz: string, now: Date): PayloadResult {
+export function buildInvitePayload(i: { recipientId: string; modeId: string; format: Format; startsAt: Date | null; durationMinutes: number; note: string; activity?: string | null; venueName?: string; areaLabel?: string }, tz: string, now: Date): PayloadResult {
   if (!i.startsAt) return { ok: false, error: 'Pick a day and time.' };
   const lead = i.startsAt.getTime() - now.getTime();
+  const inPerson = i.format === 'in_person';
+  if (inPerson && lead < IN_PERSON_MIN_LEAD_MINUTES * 60_000) return { ok: false, error: 'Pick a time at least an hour from now, so they have time to reply.' };
   if (lead < 10 * 60_000) return { ok: false, error: 'Pick a time at least 10 minutes from now.' };
   if (lead > 90 * 86_400_000) return { ok: false, error: 'Pick a time within the next 90 days.' };
   if (!(FORMATS as readonly string[]).includes(i.format)) return { ok: false, error: 'Choose how you would like to connect.' };
   if (!(i.durationMinutes >= 5 && i.durationMinutes <= 240)) return { ok: false, error: 'Choose a duration.' };
   if (i.note.length > NOTE_MAX) return { ok: false, error: `Keep your note under ${NOTE_MAX} characters.` };
   const note = i.note.trim();
-  return { ok: true, body: { recipientId: i.recipientId, modeId: i.modeId, format: i.format, startsAt: i.startsAt.toISOString(), timezone: tz, durationMinutes: i.durationMinutes, ...(note ? { note } : {}) } };
+  const base = { recipientId: i.recipientId, modeId: i.modeId, format: i.format, startsAt: i.startsAt.toISOString(), timezone: tz, durationMinutes: i.durationMinutes, ...(note ? { note } : {}) };
+  if (!inPerson) return { ok: true, body: base };
+  if (!isMeetActivity(i.activity)) return { ok: false, error: 'Choose what you would like to do.' };
+  const place = validateMeetPlace(i.venueName, i.areaLabel);
+  if (!place.ok) return { ok: false, error: PLACE_ERROR_TEXT[place.error] };
+  if (hasContactDetails(note)) return { ok: false, error: 'Please leave phone numbers, links and handles out of the note.' };
+  return { ok: true, body: { ...base, activity: i.activity, venueName: place.venueName, areaLabel: place.areaLabel } };
+}
+
+export const isInPerson = (inv: Pick<ApiInvite, 'format'>): boolean => inv.format === 'in_person';
+/** "Blue Tokai, Khan Market" for an in-person plan, otherwise null. */
+export const placeText = (inv: Pick<ApiInvite, 'venueName' | 'areaLabel'>): string | null => (inv.venueName && inv.areaLabel ? `${inv.venueName}, ${inv.areaLabel}` : null);
+/** Headline for an invitation: the activity for a meetup, the format for everything else. */
+export const inviteHeadline = (inv: Pick<ApiInvite, 'format' | 'activity'>): string => (inv.format === 'in_person' ? meetActivityLabel(inv.activity) : FORMAT_LABELS[inv.format]);
+export const inviteTitle = (inv: Pick<ApiInvite, 'format' | 'activity'>, name: string): string => (inv.format === 'in_person' ? meetTitle(inv.activity, name) : `${FORMAT_LABELS[inv.format]} with ${name}`);
+
+const OPEN_STATES = ['pending', 'reschedule_requested', 'accepted', 'rescheduled'];
+/** Is there already a live meetup plan with this person? Used so the "make a plan" nudge never nags. */
+export function hasOpenPlanWith(invites: Pick<ApiInvite, 'format' | 'state' | 'senderId' | 'recipientId' | 'startsAt'>[], me: string, other: string, now: Date): boolean {
+  return invites.some((v) => v.format === 'in_person' && OPEN_STATES.includes(v.state) && new Date(v.startsAt).getTime() > now.getTime() &&
+    ((v.senderId === me && v.recipientId === other) || (v.senderId === other && v.recipientId === me)));
+}
+
+/** The message a person can send a friend about a confirmed plan. Null when the plan has no place (not a meetup). */
+export function planShareMessage(inv: ApiInvite, otherName: string): string | null {
+  if (!isInPerson(inv) || !inv.venueName || !inv.areaLabel) return null;
+  return buildPlanShareText({ name: otherName, activityId: inv.activity, venueName: inv.venueName, areaLabel: inv.areaLabel, whenText: formatWhen(inv.startsAt, inv.timezone), durationMinutes: inv.durationMinutes });
 }

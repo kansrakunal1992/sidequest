@@ -23,17 +23,22 @@ export async function expireInvites(d: JobDeps): Promise<number> {
 }
 
 const REMINDER_WINDOWS_MIN = [60, 15];
+/** In-person plans also get a heads-up the day before. Plans made with less than 10 hours' notice skip it: they were just confirmed. */
+const DAY_BEFORE_MIN = 1440;
+const DAY_BEFORE_MIN_LEFT = 600;
 /** One reminder per window per person; only the tightest applicable window fires, and dedupe makes reruns safe. */
 export async function sendReminders(d: JobDeps): Promise<number> {
   const now = d.clock();
-  const horizon = new Date(now.getTime() + Math.max(...REMINDER_WINDOWS_MIN) * 60_000);
+  const horizon = new Date(now.getTime() + DAY_BEFORE_MIN * 60_000);
   let n = 0;
   for (const inv of await d.store.confirmedInvitesStartingBetween(now, horizon)) {
     const minsLeft = (inv.startsAt.getTime() - now.getTime()) / 60_000;
-    const window = [...REMINDER_WINDOWS_MIN].sort((a, b) => a - b).find((w) => minsLeft <= w);
+    const windows = inv.format === 'in_person' ? [...REMINDER_WINDOWS_MIN, DAY_BEFORE_MIN] : REMINDER_WINDOWS_MIN;
+    const window = [...windows].sort((a, b) => a - b).find((w) => minsLeft <= w);
     if (!window) continue;
+    if (window === DAY_BEFORE_MIN && minsLeft < DAY_BEFORE_MIN_LEFT) continue;
     for (const userId of [inv.senderId, inv.recipientId]) {
-      await d.notifier.send({ userId, kind: 'invite_reminder', payload: { inviteId: inv.id, minutes: window }, dedupeKey: `reminder:${inv.id}:${inv.sequence}:${window}` });
+      await d.notifier.send({ userId, kind: window === DAY_BEFORE_MIN ? 'invite_day_before' : 'invite_reminder', payload: { inviteId: inv.id, minutes: window }, dedupeKey: `reminder:${inv.id}:${inv.sequence}:${window}` });
       n += 1;
     }
   }

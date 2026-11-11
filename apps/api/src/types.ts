@@ -3,7 +3,7 @@ import type { InviteState, ModeId, NotificationKind, Party } from '@sidequest/sh
 /** The list of kinds lives in @sidequest/shared so the API (push copy) and the app (inbox copy) must both cover every kind. */
 export type { NotificationKind };
 
-export const INVITE_FORMATS = ['text', 'voice', 'video', 'virtual_coffee', 'intro_chat'] as const;
+export const INVITE_FORMATS = ['text', 'voice', 'video', 'virtual_coffee', 'intro_chat', 'in_person'] as const;
 export type InviteFormat = (typeof INVITE_FORMATS)[number];
 
 export interface Invite {
@@ -18,6 +18,10 @@ export interface Invite {
   timezone: string;
   durationMinutes: number;
   note: string | null;
+  /** In-person plans only: what, where and the neighbourhood. Null for every other format. */
+  activity: string | null;
+  venueName: string | null;
+  areaLabel: string | null;
   sequence: number;
   expiresAt: Date;
   conversationId: string | null;

@@ -1,4 +1,4 @@
-import { MODE_IDS } from '@sidequest/shared';
+import { MODE_IDS, hasContactDetails, isMeetActivity, validateMeetPlace } from '@sidequest/shared';
 import type { ModeId } from '@sidequest/shared';
 import { INVITE_FORMATS, err, ok } from './types.ts';
 import type { InviteFormat, Result } from './types.ts';
@@ -26,6 +26,9 @@ export interface CreateInviteInput {
   timezone: string;
   durationMinutes: number;
   note: string | null;
+  activity: string | null;
+  venueName: string | null;
+  areaLabel: string | null;
 }
 export interface RescheduleInput { startsAt: Date; durationMinutes: number; note: string | null }
 
@@ -50,8 +53,16 @@ export function parseCreateInvite(b: unknown): Result<CreateInviteInput> {
   if (!isValidTimeZone(b.timezone)) return err(400, 'invalid_timezone');
   const d = parseDuration(b.durationMinutes); if (!d.ok) return d;
   const n = parseNote(b.note); if (!n.ok) return n;
+  let activity: string | null = null, venueName: string | null = null, areaLabel: string | null = null;
+  if (b.format === 'in_person') {
+    if (!isMeetActivity(b.activity)) return err(400, 'invalid_activity');
+    const place = validateMeetPlace(b.venueName, b.areaLabel);
+    if (!place.ok) return err(400, place.error);
+    activity = b.activity; venueName = place.venueName; areaLabel = place.areaLabel;
+    if (n.value && hasContactDetails(n.value)) return err(400, 'invalid_note');
+  }
   return ok({ recipientId: b.recipientId, modeId: b.modeId as ModeId, format: b.format as InviteFormat,
-    startsAt, timezone: b.timezone, durationMinutes: d.value, note: n.value });
+    startsAt, timezone: b.timezone, durationMinutes: d.value, note: n.value, activity, venueName, areaLabel });
 }
 
 export function parseReschedule(b: unknown): Result<RescheduleInput> {

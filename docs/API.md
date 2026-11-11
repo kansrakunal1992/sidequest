@@ -5,7 +5,7 @@ Everything that touches Likes, profiles, chat messages and photos goes directly 
 
 | Method and path | Who | Notes |
 |---|---|---|
-| `POST /v1/invites` | sender | `{recipientId, modeId, format, startsAt (ISO with offset), timezone, durationMinutes 5-240, note?}` -> 201 |
+| `POST /v1/invites` | sender | `{recipientId, modeId, format, startsAt (ISO with offset), timezone, durationMinutes 5-240, note?}` -> 201. `format` may be `in_person`, which also needs `activity` (see `meet.ts`), `venueName` and `areaLabel`, a match in that vibe and at least 60 minutes of notice. Plan fields come back on every invite (`activity`, `venueName`, `areaLabel`; null for other formats). Errors: `invalid_activity`, `venue_required`, `area_required`, `place_too_long`, `place_contact_details`, `invalid_note` (400); `needs_match` (403) |
 | `GET /v1/invites?box=incoming\|outgoing\|all` | either | last 100 |
 | `GET /v1/invites/:id` | either | 404 for outsiders |
 | `POST /v1/invites/:id/accept` `/decline` `/too-new` | recipient | Too new opens nothing automatically |
@@ -37,7 +37,7 @@ Open Calls and Activities are written only through database functions (`create_o
 ## Worker jobs (the `worker` service)
 | Job | Every | What it does |
 |---|---|---|
-| expire_invites, reminders, expire_open_calls | 1 min | as before |
+| expire_invites, reminders, expire_open_calls | 1 min | as before. Reminders: 60 and 15 minutes before; in-person plans also get `invite_day_before` (between 24 and 10 hours before, once) |
 | roulette | 5 min | Groups waiting signups (same vibe, activity, time and area; blocks respected), then calls the SQL function `form_roulette_group`, which re-checks every signup. If anything changed the table is refused and nobody is notified. |
 | checkin_prompts | 1 min | When a check-in time arrives: asks the person to confirm they are okay (one tap). Closes check-ins whose plan was cancelled, whose account is deleted, or that are more than 6 hours late (worker was down). |
 | checkin_escalation | 1 min | 30 minutes after a prompt with no answer: marks it missed and notifies the trusted contact. Safety notifications ignore quiet hours. The push is name-free; the name is only inside the in-app notification. The person can still confirm they are safe afterwards and the contact is told. |

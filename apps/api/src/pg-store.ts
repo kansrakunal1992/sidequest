@@ -12,7 +12,8 @@ export interface PgLike { query(text: string, values?: unknown[]): Promise<{ row
 const inviteFrom = (r: any): Invite => ({
   id: r.id, senderId: r.sender_id, recipientId: r.recipient_id, modeId: r.mode_id, format: r.format, state: r.state,
   proposedBy: r.proposed_by, startsAt: new Date(r.starts_at), timezone: r.timezone, durationMinutes: r.duration_minutes,
-  note: r.note, sequence: r.sequence, expiresAt: new Date(r.expires_at), conversationId: r.conversation_id, createdAt: new Date(r.created_at),
+  note: r.note, activity: r.activity ?? null, venueName: r.venue_name ?? null, areaLabel: r.area_label ?? null,
+  sequence: r.sequence, expiresAt: new Date(r.expires_at), conversationId: r.conversation_id, createdAt: new Date(r.created_at),
 });
 const proposalFrom = (r: any): Proposal => ({
   id: r.id, inviteId: r.invite_id, proposedBy: r.proposed_by, startsAt: new Date(r.starts_at),
@@ -34,9 +35,9 @@ export class PgStore implements Store {
   }
   async insertInvite(i: Omit<Invite, 'id' | 'createdAt'>) {
     const r = await this.db.query(
-      `insert into conversation_invites (sender_id, recipient_id, mode_id, format, state, proposed_by, starts_at, timezone, duration_minutes, note, sequence, expires_at, conversation_id)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) returning *`,
-      [i.senderId, i.recipientId, i.modeId, i.format, i.state, i.proposedBy, i.startsAt, i.timezone, i.durationMinutes, i.note, i.sequence, i.expiresAt, i.conversationId]);
+      `insert into conversation_invites (sender_id, recipient_id, mode_id, format, state, proposed_by, starts_at, timezone, duration_minutes, note, sequence, expires_at, conversation_id, activity, venue_name, area_label)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) returning *`,
+      [i.senderId, i.recipientId, i.modeId, i.format, i.state, i.proposedBy, i.startsAt, i.timezone, i.durationMinutes, i.note, i.sequence, i.expiresAt, i.conversationId, i.activity, i.venueName, i.areaLabel]);
     return inviteFrom(r.rows[0]);
   }
   async saveInvite(i: Invite) {

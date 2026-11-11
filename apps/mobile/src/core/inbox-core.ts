@@ -21,6 +21,7 @@ const ENTRY: Record<NotificationKind, (p: Payload) => InboxEntry> = {
   invite_rescheduled: (p) => ({ title: 'Plan moved', body: 'The time of your plan changed.', route: id(p, 'inviteId') && `/invite/${id(p, 'inviteId')}` }),
   invite_cancelled: (p) => ({ title: 'Plan cancelled', body: 'A plan was cancelled.', route: id(p, 'inviteId') && `/invite/${id(p, 'inviteId')}` }),
   invite_expired: (p) => ({ title: 'Invitation expired', body: 'An invitation ran out of time.', route: id(p, 'inviteId') && `/invite/${id(p, 'inviteId')}` }),
+  invite_day_before: (p) => ({ title: 'Your plan is coming up', body: 'Check the details, or reschedule if something has changed.', route: id(p, 'inviteId') && `/invite/${id(p, 'inviteId')}` }),
   invite_reminder: (p) => ({ title: 'Coming up soon', body: 'You have a plan starting soon.', route: id(p, 'inviteId') && `/invite/${id(p, 'inviteId')}` }),
   light_chat_started: (p) => ({ title: 'A light chat started', body: 'You can say hello now.', route: id(p, 'conversationId') && `/chat/${id(p, 'conversationId')}` }),
   post_meet_prompt: (p) => ({ title: 'How did it go?', body: 'Tell us how your plan went. Only you see this.', route: id(p, 'inviteId') && `/invite/${id(p, 'inviteId')}` }),

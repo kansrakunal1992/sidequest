@@ -3,7 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Alert, FlatList, Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { chatErrorMessage, conversationStarters, mergeMessages, receiptLabel, sendGate } from '@/core/chat-core';
+import { chatErrorMessage, conversationStarters, mergeMessages, planNudge, receiptLabel, sendGate } from '@/core/chat-core';
+import { hasOpenPlanWith } from '@/core/invite-ui';
 import type { ChatMessage } from '@/core/chat-core';
 import type { ThreadInfo } from '@/core/plans';
 import { friendlyError } from '@/core/api-client';
@@ -58,6 +59,8 @@ export default function Thread() {
   const [trust, setTrust] = useState<ReturnType<typeof parseTrust>>(null);
   const [verifyOn, setVerifyOn] = useState(false);
   const [more, setMore] = useState(true);
+  const [openPlan, setOpenPlan] = useState(true);          // assume there is one until we know there is not, so the nudge never flashes
+  const [nudgeOff, setNudgeOff] = useState(false);
   const msgsRef = useRef(msgs); msgsRef.current = msgs;
 
   useEffect(() => {
@@ -82,6 +85,10 @@ export default function Thread() {
   const direct = info?.kind === 'direct';
   // Facts about the other account. If the function is missing (migration 0015 not run yet) or fails, the card is simply not shown.
   useEffect(() => { if (id && direct) void db.chatTrust(id).then((r) => setTrust(parseTrust(r))).catch(() => setTrust(null)); }, [id, direct]);
+  // Is there already a live meetup plan with this person? If the check fails the nudge simply stays hidden.
+  const otherUser = direct ? info?.userId ?? null : null;
+  useEffect(() => { if (!otherUser || !me) return; void api.listInvites('all').then((l) => setOpenPlan(hasOpenPlanWith(l, me, otherUser, new Date()))).catch(() => setOpenPlan(true)); }, [otherUser, me]);
+  const nudge = useMemo(() => planNudge({ messages: msgs, me, now: new Date(), hasOpenPlan: openPlan, dismissed: nudgeOff, eligible: !!direct }), [msgs, me, openPlan, nudgeOff, direct]);
   const warnings = useMemo(() => incomingWarnings(msgs, me), [msgs, me]);
   useEffect(() => { void api.config().then((c) => setVerifyOn(!!c.verification)).catch(() => setVerifyOn(false)); }, []);
   const card = useMemo(() => trustCard(trust, verifyOn), [trust, verifyOn]);
@@ -161,6 +168,18 @@ export default function Thread() {
             );
           }} />
         {direct && msgs.length === 0 ? <Wrap>{conversationStarters(info.sharedInterests).map((q) => <View key={q} style={{ margin: 4 }}><Chip label={q} onPress={() => setText(q)} /></View>)}</Wrap> : null}
+        {nudge && info.userId ? (
+          <View style={st.nudge} accessibilityRole="summary">
+            <View style={{ flex: 1 }}>
+              <Text style={st.nudgeTitle}>{nudge.title}</Text>
+              <Text style={st.nudgeBody}>{nudge.body}</Text>
+              <Pressable onPress={() => router.push({ pathname: '/invite/new', params: { to: info.userId, mode: info.modeId, name: info.displayName, kind: 'in_person' } } as never)} accessibilityRole="button" accessibilityLabel="Make a plan" style={[st.nudgeBtn, { backgroundColor: th.accent }]}>
+                <Text style={{ color: th.onAccent, fontWeight: '800' }}>Make a plan</Text>
+              </Pressable>
+            </View>
+            <Pressable onPress={() => setNudgeOff(true)} accessibilityRole="button" accessibilityLabel="Not now" hitSlop={10}><Ionicons name="close" size={20} color={colors.textMuted} /></Pressable>
+          </View>
+        ) : null}
         {error ? <View style={{ paddingHorizontal: spacing.lg }}><ErrorText>{error}</ErrorText></View> : null}
         {gate.hint ? <Text style={st.hint}>{gate.hint}</Text> : null}
         <Row style={st.composer}>
@@ -186,6 +205,10 @@ const st = StyleSheet.create({
   img: { width: 220, height: 280, borderRadius: radius.sm },
   imgWait: { backgroundColor: colors.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
   hint: { color: colors.textMuted, fontSize: 12, textAlign: 'center', paddingVertical: 4 },
+  nudge: { flexDirection: 'row', gap: 10, marginHorizontal: spacing.lg, marginBottom: 6, padding: 12, borderRadius: radius.md, backgroundColor: colors.surfaceRaised },
+  nudgeTitle: { color: colors.text, fontWeight: '800', fontSize: 14 },
+  nudgeBody: { color: colors.textMuted, fontSize: 13, marginTop: 2, lineHeight: 18 },
+  nudgeBtn: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.md },
   composer: { paddingHorizontal: spacing.lg, paddingVertical: 8, gap: 10, alignItems: 'flex-end' },
   input: { flex: 1, maxHeight: 120, backgroundColor: colors.surface, color: colors.text, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 10, fontSize: 16 },
   send: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },

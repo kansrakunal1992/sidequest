@@ -39,7 +39,7 @@ after(async () => { if (client) { await q('rollback'); await client.end(); } });
 
 it('invites, matches, blocks, conversations, calendar, notifications, prefs and tokens', async () => {
   const inv = await store.insertInvite({ senderId: U1, recipientId: U2, modeId: 'friendship', format: 'virtual_coffee', state: 'pending', proposedBy: null,
-    startsAt: at(120), timezone: 'Asia/Kolkata', durationMinutes: 20, note: 'Coffee?', sequence: 0, expiresAt: at(60), conversationId: null });
+    startsAt: at(120), timezone: 'Asia/Kolkata', durationMinutes: 20, note: 'Coffee?', activity: null, venueName: null, areaLabel: null, sequence: 0, expiresAt: at(60), conversationId: null });
   assert.equal((await store.getInvite(inv.id))!.note, 'Coffee?');
   assert.equal(await store.countPending(U1, U2), 1);
   assert.deepEqual(await store.countSentSince(U1, at(-60)), { total: 1, toNonMatches: 1 });
@@ -220,4 +220,20 @@ it('moderator helpers: is_moderator and which photos a moderator may look at', a
   assert.equal(await store.photoForReview(reported), 'x/reported.jpg');
   assert.equal(await store.photoForReview(approved), null);
   assert.equal(await store.photoForReview(id(99)), null);
+});
+
+it('in-person plans: the place is stored, the database insists on it, and the day-before reminder goes out once', async () => {
+  const plan = { senderId: U4, recipientId: U5, modeId: 'friendship' as const, format: 'in_person' as const, state: 'accepted' as const, proposedBy: null,
+    startsAt: at(60 * 20), timezone: 'Asia/Kolkata', durationMinutes: 60, note: null, activity: 'walk', venueName: 'Lodhi Garden', areaLabel: 'Lodhi Road',
+    sequence: 1, expiresAt: at(60 * 20), conversationId: null };
+  const inv = await store.insertInvite(plan);
+  const back = (await store.getInvite(inv.id))!;
+  assert.deepEqual([back.format, back.activity, back.venueName, back.areaLabel], ['in_person', 'walk', 'Lodhi Garden', 'Lodhi Road']);
+  await q('savepoint c');
+  await assert.rejects(store.insertInvite({ ...plan, venueName: null }), /invites_in_person_details/);
+  await q('rollback to savepoint c');
+  const deps = { store, notifier: createNotifier({ store, sender: new NoopPushSender(), clock: () => NOW }), clock: () => NOW };
+  await sendReminders(deps); await sendReminders(deps);
+  const n = await q("select count(*)::int as n from notifications where kind = 'invite_day_before' and payload->>'inviteId' = $1", [inv.id]);
+  assert.equal(n.rows[0].n, 2);
 });

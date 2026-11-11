@@ -68,3 +68,15 @@ You asked for a dedicated design at 100% on keeping Waypoint high quality, so pe
 
 ## Principle to keep
 Sort by consent, remove by conduct. People who want different things should find different people because they chose different vibes, not because someone guessed their character. People who ignore consent should be removed, not routed to others.
+
+
+## Let's Meet and Date Ideas (v16)
+- In-person plans are offered only between people who have matched in that vibe, need at least an hour of notice, and name a place and an area.
+  Contact details are refused in the place and the note, on the phone, in the API and (length only) in the database.
+- No exact address is stored. The place is what the sender typed, shown only to the two people in the plan, and included in their own calendar file.
+- Share my plan uses the phone's share sheet: first name, activity, place and time. No phone number, photo or account detail is included. What the person
+  sends, and to whom, is up to them.
+- A safety check-in is optional. If it is set and goes unanswered for 30 minutes, the trusted contact is told, but only if that contact uses Waypoint.
+- Date Ideas are written only through a checked function and read only under the profile rules (same vibe, not blocked, active). They are in the data export,
+  and are deleted with the account.
+- Not covered yet: there is no check that a named place is public, no image scanning, and nothing reaches a contact who is not on the app.
