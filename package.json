@@ -6,6 +6,10 @@
     "test": "pnpm -r --workspace-concurrency=1 --if-present test",
     "typecheck": "pnpm -r --if-present typecheck",
     "check:sql": "node scripts/check-sql.mjs",
-    "verify": "pnpm test && pnpm check:sql"
+    "verify": "pnpm test && pnpm check:sql && pnpm seed:test",
+    "seed:generate": "node scripts/seed/generate.mjs",
+    "seed:apply": "node scripts/seed/apply.mjs",
+    "seed:images": "node scripts/seed/images.mjs",
+    "seed:test": "node --test scripts/seed/seed.test.mjs scripts/seed/images.test.mjs"
   }
 }

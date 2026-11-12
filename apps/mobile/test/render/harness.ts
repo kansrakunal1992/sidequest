@@ -12,7 +12,9 @@ export async function getBundle(): Promise<string> {
     define: { 'process.env.EXPO_PUBLIC_API_URL': '"https://api.example.test"', 'process.env.NODE_ENV': '"development"', __DEV__: 'true', global: 'window' },
     alias: { 'react-native': 'react-native-web',  'expo-router': M('expo-router.tsx'), 'expo-linear-gradient': M('linear-gradient.tsx'), '@expo/vector-icons': M('icons.tsx'),
       'react-native-safe-area-context': M('safe-area.tsx'), '@/lib/supabase': M('supabase.ts'), '@/lib/session': M('session.tsx'), '@/lib/modes': M('modes.tsx'), '@/lib/api': M('api.ts'),
-      '@/lib/push': M('push.ts'), '@/lib/location': M('location.ts'), '@/lib/verify': M('verify.ts') },
+      '@/lib/push': M('push.ts'), '@/lib/location': M('location.ts'), '@/lib/verify': M('verify.ts'),
+      '@/lib/local-flags': M('local-flags.ts'), '@/lib/photos': M('photos.ts'), '@react-native-community/datetimepicker': M('datetimepicker.tsx'),
+      '@daily-co/react-native-daily-js': M('daily.tsx'), '@/lib/call-permissions': M('call-permissions.ts'), 'expo-intent-launcher': M('intent-launcher.ts') },
   });
   bundle = r.outputFiles[0]!.text;
   return bundle;
@@ -44,7 +46,7 @@ export async function mount(screen: string, setup: { rpc?: Record<string, unknow
   const text = () => doc.body.textContent ?? '';
   const find = (t: string, nth = 0): HTMLElement => {
     const all = [...doc.querySelectorAll<HTMLElement>('*')].filter((e) => (e.textContent ?? '').trim() === t && ![...e.children].some((c) => (c.textContent ?? '').trim() === t));
-    const el = all[nth]; if (!el) throw new Error(`no element with text "${t}". Page text: ${text().slice(0, 500)}`);
+    const el = all[nth] ?? [...doc.querySelectorAll<HTMLElement>('[aria-label]')].filter((e) => e.getAttribute('aria-label') === t)[nth]; if (!el) throw new Error(`no element with text "${t}". Page text: ${text().slice(0, 500)}`);
     return el;
   };
   const seen = () => win.__calls.length + win.__nav.length + win.__opened.length;

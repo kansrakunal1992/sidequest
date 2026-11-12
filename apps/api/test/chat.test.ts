@@ -65,7 +65,7 @@ test('message webhook: notifies the other person once a minute, content-free, ne
 test('HTTP: webhook needs its secret; chat-media route and config route behave', async () => {
   const w = world({ revealedBy: [B] });
   const notifier = createNotifier({ store: w.store, sender: new NoopPushSender(), clock: w.clock });
-  const server = createServer(createHandler({ invites: w.svc, store: w.store, clock: w.clock, callsEnabled: false, livekit: null, chatMedia: w.media, notifier,
+  const server = createServer(createHandler({ invites: w.svc, store: w.store, clock: w.clock, callsEnabled: false, callProvider: null, chatMedia: w.media, notifier,
     webhookSecret: 'a-long-enough-secret', verifyToken: async (t) => ({ sub: t === 'b' ? B : A }) }));
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -81,7 +81,7 @@ test('HTTP: webhook needs its secret; chat-media route and config route behave',
   const cfg = await fetch(`${base}/v1/config`, { headers: { authorization: 'Bearer a' } });
   assert.deepEqual(await cfg.json(), { calls: false, photos: false, chatImages: true, exports: false, push: false, verification: false });
   await new Promise<void>((r) => server.close(() => r()));
-  const off = createServer(createHandler({ invites: w.svc, store: w.store, clock: w.clock, callsEnabled: false, livekit: null, verifyToken: async () => ({ sub: A }) }));
+  const off = createServer(createHandler({ invites: w.svc, store: w.store, clock: w.clock, callsEnabled: false, callProvider: null, verifyToken: async () => ({ sub: A }) }));
   await new Promise<void>((r) => off.listen(0, '127.0.0.1', r));
   const res = await fetch(`http://127.0.0.1:${(off.address() as AddressInfo).port}/v1/hooks/message-created`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-webhook-secret': '' }, body: '{}' });
   assert.equal(res.status, 401);                                                                  // disabled without a configured secret
@@ -107,7 +107,7 @@ test('database-written notifications are pushed once, content-free, and only whe
 test('HTTP: notification webhook shares the secret check', async () => {
   const w = world(); w.store.tokens.push({ userId: B, token: 'tok', platform: 'android' });
   const sender = new NoopPushSender();
-  const server = createServer(createHandler({ invites: w.svc, store: w.store, clock: w.clock, callsEnabled: false, livekit: null, notifier: createNotifier({ store: w.store, sender, clock: w.clock }),
+  const server = createServer(createHandler({ invites: w.svc, store: w.store, clock: w.clock, callsEnabled: false, callProvider: null, notifier: createNotifier({ store: w.store, sender, clock: w.clock }),
     webhookSecret: 'a-long-enough-secret', verifyToken: async () => ({ sub: A }) }));
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/v1/hooks/notification-created`;

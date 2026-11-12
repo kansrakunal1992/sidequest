@@ -1,5 +1,4 @@
-import { IN_PERSON_MIN_LEAD_MINUTES, buildPlanShareText, hasContactDetails, isMeetActivity, meetActivityLabel, meetTitle, validateMeetPlace, PLACE_ERROR_TEXT } from '@sidequest/shared';
-import { transitionInvite } from '@sidequest/shared';
+import { IN_PERSON_MIN_LEAD_MINUTES, MODES as SHARED_MODES, buildPlanShareText, hasContactDetails, isMeetActivity, meetActivityLabel, meetTitle, validateMeetPlace, PLACE_ERROR_TEXT, transitionInvite } from '@sidequest/shared';
 import type { InviteEvent, InviteState } from '@sidequest/shared';
 import type { ApiInvite, CreateInviteBody } from './api-client';
 
@@ -114,3 +113,35 @@ export function planShareMessage(inv: ApiInvite, otherName: string): string | nu
   if (!isInPerson(inv) || !inv.venueName || !inv.areaLabel) return null;
   return buildPlanShareText({ name: otherName, activityId: inv.activity, venueName: inv.venueName, areaLabel: inv.areaLabel, whenText: formatWhen(inv.startsAt, inv.timezone), durationMinutes: inv.durationMinutes });
 }
+
+// ---- Who can be invited before matching ------------------------------------------------------------------------------------------
+// The rule lives in packages/shared (MODES[mode].contact.introInviteWithoutMatch). Five vibes allow a first invitation without a match;
+// Explore does not. The recipient can also switch "Allow invitations before matching" off. We show the button only when it can work,
+// so nobody fills in a whole form just to be told no.
+export function inviteAvailability(mode: string, matched: boolean): { canInvite: boolean; hint: string | null } {
+  if (matched) return { canInvite: true, hint: null };
+  const rule = (SHARED_MODES as Record<string, { contact: { introInviteWithoutMatch: boolean } }>)[mode]?.contact;
+  if (rule && !rule.introInviteWithoutMatch) return { canInvite: false, hint: 'In this vibe, invitations open up once you have matched. Send a Like first.' };
+  return { canInvite: true, hint: null };
+}
+
+// ---- Calendar picker helpers (pure) -------------------------------------------------------------------------------------------------
+export const DEFAULT_PICK_HOUR = 19;          // after choosing only a date we pre-fill 7:00 pm so one tap is enough
+export const MAX_PICK_DAYS = 90;              // the API refuses invitations more than 90 days ahead
+export const MIN_PICK_MINUTES = 15;
+
+/** Date from one picker, hours and minutes from the other. */
+export function combineDateAndTime(day: Date, hour: number, minute: number): Date {
+  const d = new Date(day); d.setHours(hour, minute, 0, 0); return d;
+}
+export const startOfDay = (d: Date): Date => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+
+/** A plain sentence when the chosen moment cannot be used, otherwise null. The API accepts 5 minutes to 90 days ahead; the app asks for 15 minutes so the other person has a moment to see it. */
+export function whenProblem(d: Date, now: Date, maxDays = MAX_PICK_DAYS): string | null {
+  const lead = d.getTime() - now.getTime();
+  if (lead < MIN_PICK_MINUTES * 60_000) return 'Pick a time at least 15 minutes from now.';
+  if (lead > maxDays * 86_400_000) return `Pick a day within the next ${maxDays} days.`;
+  return null;
+}
+export const formatDay = (d: Date, locale = 'en-IN'): string => new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short' }).format(d);
+export const formatTime = (d: Date, locale = 'en-IN'): string => new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(d);

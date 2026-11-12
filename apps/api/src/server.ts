@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import * as pg from 'pg';
 import { createHandler } from './app.ts';
+import { createDailyProvider } from './daily.ts';
 import { loadConfig } from './config.ts';
 import { InviteService } from './invite-service.ts';
 import { createJwksProvider, verifyJwt } from './jwt.ts';
@@ -52,7 +53,7 @@ const getJwks = createJwksProvider(`${cfg.supabaseUrl}/auth/v1/.well-known/jwks.
 const verifyToken = (token: string) =>
   verifyJwt(token, { hsSecret: cfg.jwtSecret ?? undefined, getJwks, now: new Date(), audience: 'authenticated', issuer: `${cfg.supabaseUrl}/auth/v1` });
 
-const server = createServer(createHandler({ invites, store, verifyToken, clock, callsEnabled: cfg.callsEnabled, livekit: cfg.livekit, corsOrigin: cfg.corsOrigin, photos, photoAccess, chatMedia, exports: exportAccess,
+const server = createServer(createHandler({ invites, store, verifyToken, clock, callsEnabled: cfg.callsEnabled, callProvider: cfg.daily ? createDailyProvider(cfg.daily) : null, corsOrigin: cfg.corsOrigin, photos, photoAccess, chatMedia, exports: exportAccess,
   legal: cfg.legalName && cfg.contactEmail ? { legalName: cfg.legalName, contactEmail: cfg.contactEmail, childSafetyEmail: cfg.childSafetyEmail ?? cfg.contactEmail, supabaseUrl: cfg.supabaseUrl, anonKey: cfg.anonKey, appName: cfg.appName, verificationProvider: cfg.didit ? 'Didit' : null } : null, admin: cfg.anonKey ? { supabaseUrl: cfg.supabaseUrl, anonKey: cfg.anonKey } : null,
   adminPhotos: signer && cfg.anonKey ? new AdminPhotoAccess(store, signer) : null, notifier, push, selfie, webhookSecret: cfg.webhookSecret, ageVerifier: null, log }));
 server.listen(cfg.port, () => log(`api listening on ${cfg.port}`));

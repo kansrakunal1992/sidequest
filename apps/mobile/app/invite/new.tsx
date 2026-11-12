@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import { FIRST_MEET_TIPS, MEET_ACTIVITIES, PLACE_MAX, isMeetActivity, meetActivity } from '@sidequest/shared';
-import { friendlyError } from '@/core/api-client';
+import { inviteErrorText } from '@/core/api-client';
 import { DURATIONS, FORMATS, FORMAT_ICONS, FORMAT_LABELS, IN_PERSON_DURATIONS, NOTE_MAX, buildInvitePayload } from '@/core/invite-ui';
 import type { Format } from '@/core/invite-ui';
 import { colors, spacing } from '@/design/theme';
@@ -46,7 +46,7 @@ export default function NewInvite() {
     if (!built.ok) { setError(built.error); return; }
     setBusy(true); setError(null);
     try { const inv = await api.createInvite(built.body); router.replace(`/invite/${inv.id}` as never); }
-    catch (e) { setError(friendlyError(e)); } finally { setBusy(false); }
+    catch (e) { setError(inviteErrorText(e)); } finally { setBusy(false); }
   }
   return (
     <Screen>

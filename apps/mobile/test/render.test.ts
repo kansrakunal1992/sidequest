@@ -11,6 +11,8 @@ import type { Page } from './render/harness.ts';
 const U = '11111111-2222-4333-8444-555555555555';
 const FUTURE = new Date(Date.now() + 2 * 86_400_000).toISOString();
 const noErrors = (p: Page) => assert.deepEqual(p.errors.filter((e) => !/Warning: (Each child|validateDOMNesting)/.test(e)), [], 'console errors while rendering');
+const APPROVED = { id: 'ph1', path: 'me/1.jpg', status: 'approved', visibleModes: ['friendship', 'serious_dating'], position: 0, url: 'https://img.test/1.jpg' };
+const PENDING = { ...APPROVED, id: 'ph2', status: 'pending', position: 1 };
 const CIRCLE = { id: 'c1', name: 'Sunday Walkers', description: 'Hills and cake', visibility: 'public', category: 'walking', member_count: 3, my_role: null, my_status: null, owner_name: 'Sam', conversation_id: null };
 
 test('Circles tab: lists circles, switches between the three panels, each loads its own data', async () => {
@@ -275,7 +277,7 @@ test('Privacy: a typed city is the manual fallback and goes through the same fun
 
 // ------------------------------------------------------------------ automatic photo verification
 test('Verify: asks for agreement in plain words, starts the check, and shows the result when it arrives', async () => {
-  const p = await mount('verify', { globals: { __myVerification: { verified: false, verified_at: null, latest: null } } });
+  const p = await mount('verify', { globals: { __ownPhotos: [APPROVED], __myVerification: { verified: false, verified_at: null, latest: null } } });
   await p.waitFor('Photo verification'); await p.waitFor('I agree, start the check');
   assert.ok(p.has('We never receive your selfie') && p.has('Not now'));
   await p.click('I agree, start the check');
@@ -283,10 +285,10 @@ test('Verify: asks for agreement in plain words, starts the check, and shows the
   noErrors(p);
 });
 test('Verify: a failed start says why; a past mismatch offers a retry; a verified person is told what the badge means', async () => {
-  const e = await mount('verify', { globals: { __verifyStartError: 'You have tried a few times already. Please try again tomorrow.' } });
+  const e = await mount('verify', { globals: { __ownPhotos: [APPROVED], __verifyStartError: 'You have tried a few times already. Please try again tomorrow.' } });
   await e.waitFor('I agree, start the check'); await e.click('I agree, start the check');
   await e.waitFor('try again tomorrow'); assert.ok(!e.has('Waiting for the result'));
-  const f = await mount('verify', { globals: { __myVerification: { verified: false, latest: { status: 'rejected', reject_reason: 'face_mismatch', expires_at: null } } } });
+  const f = await mount('verify', { globals: { __ownPhotos: [APPROVED], __myVerification: { verified: false, latest: { status: 'rejected', reject_reason: 'face_mismatch', expires_at: null } } } });
   await f.waitFor('did not match your profile photo'); assert.ok(f.has('Try again'));
   const ok = await mount('verify', { globals: { __myVerification: { verified: true, verified_at: '2026-11-09T00:00:00Z', latest: null } } });
   await ok.waitFor('You are photo verified'); assert.ok(ok.has('does not check your name'));
@@ -298,6 +300,108 @@ test('Safety hub: the Photo verification row appears only when the server has it
   await on.waitFor('AB12 CD34'); await on.settle(100); assert.ok(on.has('Photo verification'));
   const off = await mount('safety', { mode: 'serious_dating', rpc: { my_friend_code: 'ab12cd34', my_checkins: [] }, globals: { __verification: false } });
   await off.waitFor('AB12 CD34'); await off.settle(100); assert.ok(!off.has('Photo verification'));
+});
+
+// ---- v18: verify readiness, own-profile preview, profile header, photo adding, invitations --------------------------------------------
+test('Verify: no photo, or a photo still in review, explains what to do and blocks the start instead of failing after the tap', async () => {
+  const none = await mount('verify', { globals: { __ownPhotos: [] } });
+  await none.waitFor('Add a clear photo of your face first'); assert.ok(none.has('Add a photo'));
+  await none.click('I agree, start the check'); assert.ok(!none.calls.some((c) => c.kind === 'startSelfieCheck'), 'must not start without a photo');
+  const review = await mount('verify', { globals: { __ownPhotos: [PENDING] } });
+  await review.waitFor('still being reviewed'); assert.ok(review.has('Open my photos'));
+  const ok = await mount('verify', { globals: { __ownPhotos: [APPROVED] } });
+  await ok.waitFor('Get your free verified badge'); await ok.settle(80);
+  assert.ok(ok.has('Your main photo') && ok.has('A quick live selfie') && ok.has('Your free badge') && !ok.has('still being reviewed'));
+  noErrors(ok);
+});
+test('My profile: shows you as others see you, marks photos others cannot see, and nudges verification', async () => {
+  const hidden = { ...APPROVED, id: 'ph3', visibleModes: ['serious_dating'], position: 2 };
+  const p = await mount('my-profile', { mode: 'friendship', globals: { __ownPhotos: [APPROVED, PENDING, hidden], __myVerification: { verified: false, verified_at: null, latest: null } },
+    tables: { profiles: [{ display_name: 'Asha', date_of_birth: '1995-06-01', bio: 'General bio', interests: ['Hiking', 'Chai'], city: 'Pune', neighborhood: 'Baner' }],
+      mode_specific_profiles: [{ headline: 'Weekend trekker', bio: 'Looking for hiking friends', prompts: [{ q: 'Perfect Sunday', a: 'A long walk' }], visible_photo_ids: [] }], user_active_modes: [{ availability: 'open_to_chat' }] } });
+  await p.waitFor('Asha, 3'); await p.settle(80);
+  assert.ok(p.has('Weekend trekker') && p.has('Looking for hiking friends') && p.has('Perfect Sunday') && p.has('Baner') && p.has('Hiking'));
+  assert.ok(!p.has('General bio'), 'the vibe intro wins over the general bio, like a viewer would see');
+  assert.ok(p.has('In review. Only you can see it for now.') && p.has('Hidden in this vibe.'), 'non-live photos are labelled');
+  assert.ok(p.has('1 of 3 photos are visible to others'));
+  assert.ok(p.has('Get your free verified badge'));
+  await p.click('Get your free verified badge'); assert.ok(JSON.stringify(p.nav).includes('/safety/verify'));
+  await p.click('Edit profile'); assert.ok(JSON.stringify(p.nav).includes('/edit-profile'));
+  noErrors(p);
+  const v = await mount('my-profile', { mode: 'friendship', globals: { __ownPhotos: [APPROVED], __myVerification: { verified: true, verified_at: '2026-11-09T00:00:00Z', latest: null } },
+    tables: { profiles: [{ display_name: 'Asha', date_of_birth: '1995-06-01', bio: 'Hi', interests: [], city: 'Pune' }] } });
+  await v.waitFor('Asha'); await v.settle(80); assert.ok(!v.has('Get your free verified badge'));
+});
+test('My profile: with no photos it says so and offers to add one', async () => {
+  const p = await mount('my-profile', { mode: 'friendship', globals: { __ownPhotos: [] }, tables: { profiles: [{ display_name: 'Asha', date_of_birth: '1995-06-01', interests: [], city: 'Pune' }] } });
+  await p.waitFor('You have no photos yet'); assert.ok(p.has('Add photos') && p.has('You have not written anything for this vibe yet'));
+});
+test('Profile tab: header shows who you are, the verify prompt, and a checklist that tells you what is left', async () => {
+  const p = await mount('profile', { mode: 'friendship', globals: { __ownPhotos: [APPROVED], __myVerification: { verified: false, verified_at: null, latest: null } },
+    tables: { profiles: [{ display_name: 'Asha', date_of_birth: '1995-06-01', bio: null, interests: [], city: 'Pune', incognito: false, accepts_intro_invites: true, read_receipts: true }] } });
+  await p.waitFor('Asha, 3'); await p.settle(80);
+  assert.ok(p.has('How others see you') && p.has('Edit profile') && p.has('Finish your profile') && p.has('0 of 3'));
+  assert.ok(p.has('Get your free Photo verified badge') && p.has('Add 3 or more photos') && p.has('Say a little about yourself'));
+  await p.click('How others see you'); assert.ok(JSON.stringify(p.nav).includes('/my-profile'));
+  noErrors(p);
+  const done = await mount('profile', { mode: 'friendship', globals: { __ownPhotos: [APPROVED, { ...APPROVED, id: 'b', position: 1 }, { ...APPROVED, id: 'c', position: 2 }], __myVerification: { verified: true, verified_at: '2026-11-09T00:00:00Z', latest: null } },
+    tables: { profiles: [{ display_name: 'Asha', date_of_birth: '1995-06-01', bio: 'About me', interests: [], city: 'Pune' }] } });
+  await done.waitFor('Asha, 3'); await done.settle(80); assert.ok(!done.has('Finish your profile'), 'the checklist disappears once everything is done');
+});
+test('Edit profile: adding photos puts them after existing ones, tells you right there, and explains a failure', async () => {
+  const p = await mount('edit-profile', { mode: 'friendship', globals: { __ownPhotos: [APPROVED], __picked: ['file:///a.jpg', 'file:///b.jpg'] },
+    tables: { profiles: [{ display_name: 'Asha', bio: '', interests: [] }] } });
+  await p.waitFor('Photos'); await p.settle(80);
+  await p.click('Add photos'); await p.waitFor('2 photos added');
+  const up = p.calls.find((c) => c.kind === 'uploadPhotos');
+  assert.equal(up.startPosition, 1, 'new photos start AFTER the existing main photo');
+  assert.ok(p.has('Main ·'), 'first photo is labelled as main');
+  const bad = await mount('edit-profile', { mode: 'friendship', globals: { __ownPhotos: [APPROVED], __picked: ['file:///a.jpg'], __uploadResult: { uploaded: 0, failed: 1, errors: ['No connection. Check your internet and try again.'] } },
+    tables: { profiles: [{ display_name: 'Asha', bio: '', interests: [] }] } });
+  await bad.waitFor('Photos'); await bad.settle(80); await bad.click('Add photos');
+  await bad.waitFor('did not upload'); assert.ok(bad.has('No connection'), 'the real reason is shown');
+});
+test('Edit profile: a second photo can be made the main one', async () => {
+  const p = await mount('edit-profile', { mode: 'friendship', globals: { __ownPhotos: [APPROVED, PENDING] }, tables: { profiles: [{ display_name: 'Asha', bio: '', interests: [] }] } });
+  await p.waitFor('Photos'); await p.settle(80);
+  await p.click('Make this your main photo');
+  await p.waitFor('Main photo updated'); assert.deepEqual(p.calls.find((c) => c.kind === 'makeMainPhoto')?.id, 'ph2');
+});
+
+// ---- v18: calendar picker ---------------------------------------------------------------------------------------------------------
+test('Calendar picker: choose a date and a time from the phone calendar and clock (no typing), and the invitation gets exactly that moment', async () => {
+  const day = new Date(); day.setDate(day.getDate() + 3); day.setHours(11, 11, 11, 0);
+  const time = new Date(2000, 0, 1, 20, 30);
+  const p = await mount('invite-new', { params: { to: U, mode: 'friendship', name: 'Asha' }, globals: { __pick: { date: day.toISOString(), time: time.toISOString() } } });
+  await p.waitFor('Invite Asha');
+  assert.ok(!p.has('Month') && !p.has('Year') && !p.has('(24-hour)'), 'the typed day/month/year boxes are gone');
+  await p.click('Choose a date');
+  const dateCall = p.calls.find((c) => c.kind === 'nativePicker' && c.mode === 'date');
+  assert.ok(dateCall, 'opens the native calendar');
+  const days = (new Date(dateCall.max).getTime() - new Date(dateCall.min).getTime()) / 86_400_000;
+  assert.ok(days >= 89 && days <= 91, 'limited to the next 90 days, never the past');
+  await p.settle(80); assert.ok(p.has('7:00') , 'after picking only a date the time is pre-filled with 7:00 pm');
+  await p.click('Choose a time'); await p.settle(80);
+  assert.ok(p.has('8:30') && p.has('(your time)'));
+  await p.click('Send invitation');
+  const sent = p.calls.find((c) => c.kind === 'api' && c.name === 'createInvite');
+  assert.ok(sent, 'the invitation was sent');
+  const when = new Date(sent.body.startsAt);
+  assert.deepEqual([when.getDate(), when.getHours(), when.getMinutes()], [day.getDate(), 20, 30]);
+  noErrors(p);
+});
+test('Calendar picker: a time that has already passed is refused with a plain sentence, and nothing is sent', async () => {
+  const today = new Date(); today.setHours(0, 5, 0, 0);
+  const p = await mount('invite-new', { params: { to: U, mode: 'friendship', name: 'Asha' }, globals: { __pick: { date: today.toISOString(), time: new Date(2000, 0, 1, 0, 10).toISOString() } } });
+  await p.waitFor('Invite Asha'); await p.click('Choose a date'); await p.click('Choose a time'); await p.settle(80);
+  assert.ok(p.has('at least 15 minutes from now'));
+  await p.click('Send invitation').catch(() => {}); await p.settle(100);
+  assert.ok(!p.calls.some((c) => c.kind === 'api' && c.name === 'createInvite'), 'must not send an unusable time');
+});
+test('Calendar picker: the quick choices still work', async () => {
+  const p = await mount('invite-new', { params: { to: U, mode: 'friendship', name: 'Asha' } });
+  await p.waitFor('Tomorrow evening'); await p.click('Tomorrow evening'); await p.settle(80);
+  assert.ok(p.has('(your time)') && p.has('7:00'));
 });
 
 // ===== Let's Meet and Date Ideas ================================================================================
@@ -366,4 +470,74 @@ test('Swipe card: shows what they are up for, asks once for the whole batch, and
   await b.waitFor('Aman, 29'); await b.settle(200); assert.ok(!b.has('Up for'));
   const c = await mount('card-ideas', { rpc: { date_ideas_for: () => { throw new Error('missing'); } } });
   await c.waitFor('Aman, 29'); await c.settle(200); assert.ok(!c.has('Up for')); noErrors(c);
+});
+
+// ===== In-app calls (Daily) =====================================================================================================
+const soonIso = (mins: number) => new Date(Date.now() + mins * 60_000).toISOString();
+const them = (video = true) => ({ local: false, user_name: 'Rohan', tracks: { audio: { state: 'playable', persistentTrack: {} }, video: { state: video ? 'playable' : 'off', persistentTrack: {} } } });
+test('Join card: tells you when you can join, and only offers the button inside the window', async () => {
+  const start = soonIso(120);
+  const early = await mount('join-card', { params: { startsAt: start, now: new Date().toISOString() } });
+  await early.settle(80);
+  assert.ok(early.has('10 minutes before the start') && !early.has('Join video call'));
+  const open = await mount('join-card', { params: { startsAt: soonIso(5), now: new Date().toISOString() } });
+  assert.ok(open.has('It is time') && open.has('Calls are not recorded by Waypoint'));
+  await open.click('Join video call'); assert.equal((open.win as any).__joined, true);
+  const voice = await mount('join-card', { params: { format: 'voice', startsAt: soonIso(5), now: new Date().toISOString() } });
+  assert.ok(voice.has('Join voice call'));
+  const over = await mount('join-card', { params: { startsAt: soonIso(-120), now: new Date().toISOString() } });
+  assert.ok(over.has('This call window has ended'));
+  const off = await mount('join-card', { params: { startsAt: soonIso(5), now: new Date().toISOString(), callsOn: '0' } });
+  assert.ok(off.has('Calling is not switched on yet') && !off.has('Join video call'));
+  const pending = await mount('join-card', { params: { state: 'pending', startsAt: soonIso(5), now: new Date().toISOString() } });
+  assert.ok(pending.has('once the plan is confirmed'));
+  const text = await mount('join-card', { params: { format: 'text', startsAt: soonIso(5), now: new Date().toISOString() } });
+  assert.ok(!text.has('Join') && !text.has('call'), 'a text chat invitation shows no call card');
+});
+test('Call: nothing starts until Join; then permission, token and room join happen in order; you can mute, switch the camera off and end', async () => {
+  const p = await mount('call', { params: { id: 'inv-1' }, globals: { __me: 'me-1' } });
+  await p.waitFor('Video call with them'); await p.settle(100);
+  assert.ok(p.has('Waypoint does not record calls'));
+  assert.ok(!p.calls.some((c) => c.kind === 'daily.join' || c.kind === 'permissions'), 'no camera or microphone before the tap');
+  await p.click('Join video call'); await p.settle(150);
+  const order = p.calls.map((c) => c.kind === 'api' ? c.name : c.kind).filter((k) => ['permissions', 'callToken', 'daily.join'].includes(k));
+  assert.deepEqual(order, ['permissions', 'callToken', 'daily.join']);
+  const join = p.calls.find((c) => c.kind === 'daily.join'); assert.equal(join.o.url, 'https://wp.daily.co/invite-1'); assert.equal(join.o.token, 'tok-1'); assert.equal(join.o.startVideoOff, false);
+  await p.waitFor('Waiting for them to join…');
+  const d = (p.win as any).__daily; d.store.them = them(); d.emit('participant-joined'); await p.settle(100);
+  assert.ok(!p.has('Waiting for them to join…'), 'the waiting message goes away once they are in');
+  assert.ok((p.win as any).document.querySelector('[data-testid="media"]'), 'their picture is shown');
+  await p.click('Mute microphone'); assert.deepEqual(p.calls.filter((c) => c.kind === 'daily.mic').at(-1), { kind: 'daily.mic', on: false }); await p.settle(80);
+  assert.ok((p.win as any).document.querySelector('[aria-label="Unmute microphone"]'), 'the button now offers to unmute'); await p.click('Unmute microphone');
+  assert.deepEqual(p.calls.filter((c) => c.kind === 'daily.mic').at(-1), { kind: 'daily.mic', on: true });
+  await p.click('Turn camera off'); assert.deepEqual(p.calls.filter((c) => c.kind === 'daily.cam').at(-1), { kind: 'daily.cam', on: false });
+  await p.click('End call'); await p.waitFor('Call ended');
+  assert.ok(p.has('You left the call') && p.calls.some((c) => c.kind === 'daily.leave') && p.calls.some((c) => c.kind === 'daily.destroy'));
+  noErrors(p);
+});
+test('Call: a voice call joins with the camera off and shows no camera controls', async () => {
+  const p = await mount('call', { params: { id: 'inv-1' }, globals: { __invite: { id: 'inv-1', senderId: 'other-1', recipientId: 'me-1', format: 'voice', state: 'accepted', startsAt: soonIso(2), durationMinutes: 15 }, __me: 'me-1' } });
+  await p.waitFor('Voice call with them'); await p.click('Join voice call'); await p.settle(150);
+  assert.equal(p.calls.find((c) => c.kind === 'daily.join').o.startVideoOff, true);
+  const label = (t: string) => !!(p.win as any).document.querySelector(`[aria-label="${t}"]`);
+  assert.ok(label('Mute microphone') && !label('Turn camera off') && !label('Switch camera') && label('End call'));
+});
+test('Call: a refused microphone stops before anything is requested; a refused camera joins with sound only and says so', async () => {
+  const no = await mount('call', { params: { id: 'inv-1' }, globals: { __me: 'me-1', __perm: { ok: false, cameraDenied: true, message: 'Waypoint needs the microphone so they can hear you. Allow it and try again.' } } });
+  await no.waitFor('Video call with them'); await no.click('Join video call'); await no.settle(100);
+  assert.ok(no.has('needs the microphone') && no.has('Join video call'));
+  assert.ok(!no.calls.some((c) => c.kind === 'api' && c.name === 'callToken'), 'no token is requested without a microphone');
+  const cam = await mount('call', { params: { id: 'inv-1' }, globals: { __me: 'me-1', __perm: { ok: true, cameraDenied: true, message: null } } });
+  await cam.waitFor('Video call with them'); await cam.click('Join video call'); await cam.settle(150);
+  assert.equal(cam.calls.find((c) => c.kind === 'daily.join').o.startVideoOff, true);
+  assert.ok(cam.has('joining with sound only'));
+});
+test('Call: when the server says it is too early or the service is down, you get a plain sentence and can try again', async () => {
+  const p = await mount('call', { params: { id: 'inv-1' }, globals: { __me: 'me-1', __tokenError: 'boom' } });
+  await p.waitFor('Video call with them'); await p.click('Join video call'); await p.settle(150);
+  assert.ok(p.has('Something went wrong. Please try again.') && p.has('Join video call'), 'a plain sentence, and back on the join page rather than stuck');
+  assert.ok(!p.calls.some((c) => c.kind === 'daily.join'));
+  const j = await mount('call', { params: { id: 'inv-1' }, globals: { __me: 'me-1', __joinError: 'room closed' } });
+  await j.waitFor('Video call with them'); await j.click('Join video call'); await j.settle(200);
+  assert.ok(j.has('room closed') && j.has('Join video call'), 'a failed join shows why and offers Join again');
 });

@@ -10,6 +10,7 @@ import { FIRST_MEET_TIPS } from '@sidequest/shared';
 import type { Format, InviteAction } from '@/core/invite-ui';
 import { colors, spacing } from '@/design/theme';
 import { AppText, Button, Card, ErrorText, Row, Spacer } from '@/design/ui';
+import { JoinCallCard } from '@/features/JoinCall';
 import { PostMeetSheet } from '@/features/PostMeetSheet';
 import { TimePicker } from '@/features/TimePicker';
 import { api } from '@/lib/api';
@@ -33,6 +34,8 @@ export default function InviteDetail() {
   const [newTime, setNewTime] = useState<Date | null>(null);
   const [feedback, setFeedback] = useState(false);
   const [feedbackDone, setFeedbackDone] = useState(true);
+  const [callsOn, setCallsOn] = useState(false);
+  useEffect(() => { api.config().then((c) => setCallsOn(!!c.calls)).catch(() => setCallsOn(false)); }, []);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -86,7 +89,7 @@ export default function InviteDetail() {
             <Button kind="secondary" label="Set a safety check-in" onPress={() => router.push('/safety/trusted' as never)} />
           </Card></>
         ) : null}
-        {confirmed && isCall ? <><Spacer /><Card><AppText variant="caption">This is a {FORMAT_LABELS[inv.format as Format].toLowerCase()}. In-app calling arrives in a later update. Until then, chat in Waypoint at the agreed time.</AppText></Card></> : null}
+        {isCall ? <><Spacer /><JoinCallCard inv={inv} callsOn={callsOn} name={name} onJoin={() => router.push(`/call/${inv.id}` as never)} /></> : null}
 
         <Spacer />
         {actions.includes('accept') ? <><Button label="Accept" loading={busy === 'accept'} onPress={() => void run('accept', () => api.accept(inv.id))} /><Spacer h={10} /></> : null}

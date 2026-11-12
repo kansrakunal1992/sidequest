@@ -20,7 +20,7 @@ const reqRow = (o: Record<string, unknown>) => { const r = { id: `55555555-5555-
 
 before(async () => {
   ctx = setup();
-  server = createServer(createHandler({ invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, livekit: null, exports: new ExportAccess(ctx.store, admin),
+  server = createServer(createHandler({ invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, callProvider: null, exports: new ExportAccess(ctx.store, admin),
     verifyToken: (t) => verifyJwt(t, { hsSecret: SECRET, now: ctx.clock(), audience: 'authenticated' }), ipRatePerMinute: 1000 }));
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -57,7 +57,7 @@ test('download: a request that is not finished says "not ready"; a path outside 
 });
 
 test('download: not configured means 501, and the config endpoint says whether exports exist', async () => {
-  const h = createServer(createHandler({ invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, livekit: null,
+  const h = createServer(createHandler({ invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, callProvider: null,
     verifyToken: (t) => verifyJwt(t, { hsSecret: SECRET, now: ctx.clock(), audience: 'authenticated' }) }));
   await new Promise<void>((r) => h.listen(0, '127.0.0.1', r));
   const b = `http://127.0.0.1:${(h.address() as AddressInfo).port}`;

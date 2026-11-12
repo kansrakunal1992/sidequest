@@ -6,7 +6,6 @@ import { NoopPushSender, createNotifier, inQuietHours, renderNotification } from
 import type { PushSender } from '../src/notifications.ts';
 import { FcmSender } from '../src/push-fcm.ts';
 import { b64url, createJwksProvider, signHs256, verifyJwt } from '../src/jwt.ts';
-import { createLiveKitToken } from '../src/livekit.ts';
 import { MODES } from '@sidequest/shared';
 import type { NotificationKind } from '../src/types.ts';
 import { A } from './helpers.ts';
@@ -162,13 +161,3 @@ test('JWKS provider caches within its ttl', async () => {
   t = 2000; await get(); assert.equal(hits, 2);
 });
 
-// ---------- LiveKit token ----------
-test('LiveKit token: scoped to one room, one person, short lived', async () => {
-  const cfg = { url: 'wss://x', apiKey: 'key', apiSecret: 'secret' };
-  const notAfter = new Date(now.getTime() + 8 * 3600_000);
-  const tok = createLiveKitToken(cfg, { room: 'invite-1', identity: A, now, notAfter });
-  const c = await verifyJwt(tok, { hsSecret: 'secret', now });
-  assert.equal(c.iss, 'key'); assert.equal(c.sub, A);
-  assert.deepEqual((c as any).video.room, 'invite-1');
-  assert.ok(c.exp - Math.floor(now.getTime() / 1000) <= 3600);
-});

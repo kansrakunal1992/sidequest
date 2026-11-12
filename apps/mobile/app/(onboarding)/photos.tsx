@@ -27,6 +27,8 @@ export default function Photos() {
       {state.photos.length < LIMITS.photosMax ? <Button kind="secondary" label={state.photos.length ? 'Add more' : 'Choose photos'} onPress={add} /> : null}
       <Spacer />
       <Card><AppText variant="caption">Photos are checked before other people can see them. We remove location data from every photo. You choose which photos show in each vibe later.</AppText></Card>
+      <Spacer h={10} />
+      <Card><AppText variant="caption">Tip: make your first photo a clear shot of your face. After you finish, you can get a free verified badge by taking a quick selfie that is matched against it.</AppText></Card>
     </StepFrame>
   );
 }

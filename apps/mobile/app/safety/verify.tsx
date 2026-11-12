@@ -1,15 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Text } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CONSENT_TEXT, POLL_MAX, POLL_MS, verifyView } from '@/core/verify-core';
+import { Ionicons } from '@expo/vector-icons';
+import { Image, Pressable, View } from 'react-native';
+import { CONSENT_TEXT, POLL_MAX, POLL_MS, VERIFY_STEPS, readiness, readinessText, verifyView } from '@/core/verify-core';
+import { verificationReference } from '@/core/self-profile';
+import type { OwnPhoto } from '@/core/self-profile';
+import { colors, spacing } from '@/design/theme';
+import { loadMyPhotos } from '@/lib/photos';
+import { useSession } from '@/lib/session';
+import { useTheme } from '@/lib/theme';
 import type { MyVerification } from '@/core/verify-core';
-import { AppText, Button, Card, ErrorText, Screen, Spacer } from '@/design/ui';
+import { AppText, Button, Card, ErrorText, Row, Screen, Spacer } from '@/design/ui';
 import { api } from '@/lib/api';
 import { readMyVerification, startSelfieCheck } from '@/lib/verify';
 
 /** Optional automatic photo check. The person agrees, takes a live selfie on the provider's page, and comes back to a yes or no. No human looks at anything. */
 export default function Verify() {
   const router = useRouter();
+  const th = useTheme();
+  const { session } = useSession();
+  const uid = session?.user.id ?? '';
+  const [photos, setPhotos] = useState<OwnPhoto[] | null>(null);
   const [v, setV] = useState<MyVerification | null>(null);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
@@ -21,7 +33,11 @@ export default function Verify() {
   useEffect(() => {
     void refresh();
     void api.config().then((c) => setAvailable(!!c.verification)).catch(() => setAvailable(false));
-  }, [refresh]);
+    if (uid) loadMyPhotos(uid).then(setPhotos).catch(() => setPhotos(null));
+  }, [refresh, uid]);
+  const ready = readiness(photos);
+  const blocker = readinessText(ready);
+  const ref = photos ? verificationReference(photos) : null;
 
   const view = verifyView(v, new Date());
   const watching = waiting || view.kind === 'waiting';
@@ -63,13 +79,38 @@ export default function Verify() {
         <Card><AppText variant="title">Not available yet</AppText><AppText muted style={{ marginTop: 6 }}>Photo verification is not switched on yet. Nothing is needed from you.</AppText></Card>
       ) : (
         <Card>
-          <AppText variant="title">Show that your photos are you</AppText>
-          <AppText muted style={{ marginTop: 6 }}>{CONSENT_TEXT}</AppText>
+          <AppText variant="title">Get your free verified badge</AppText>
+          <AppText muted style={{ marginTop: 6 }}>Optional, free, and takes about a minute. The badge tells people your photos are really you.</AppText>
+          <Spacer h={spacing.md} />
+          <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ alignItems: 'center', width: 96 }}>
+              <View style={{ width: 72, height: 72, borderRadius: 36, overflow: 'hidden', backgroundColor: colors.surfaceRaised, alignItems: 'center', justifyContent: 'center' }}>
+                {ref?.url ? <Image source={{ uri: ref.url }} style={{ width: 72, height: 72 }} accessibilityLabel="The photo your selfie will be compared with" /> : <Ionicons name="person" size={30} color={colors.textMuted} />}
+              </View>
+              <Text style={{ color: colors.text, fontSize: 12, fontWeight: '700', marginTop: 6, textAlign: 'center' }}>{VERIFY_STEPS[0]}</Text>
+            </View>
+            <Ionicons name="arrow-forward" size={18} color={colors.textMuted} />
+            <View style={{ alignItems: 'center', width: 96 }}>
+              <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.surfaceRaised, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="camera-outline" size={30} color={th.highlight} /></View>
+              <Text style={{ color: colors.text, fontSize: 12, fontWeight: '700', marginTop: 6, textAlign: 'center' }}>{VERIFY_STEPS[1]}</Text>
+            </View>
+            <Ionicons name="arrow-forward" size={18} color={colors.textMuted} />
+            <View style={{ alignItems: 'center', width: 96 }}>
+              <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.surfaceRaised, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="checkmark-circle" size={34} color={colors.cyan} /></View>
+              <Text style={{ color: colors.text, fontSize: 12, fontWeight: '700', marginTop: 6, textAlign: 'center' }}>{VERIFY_STEPS[2]}</Text>
+            </View>
+          </Row>
+          <Spacer h={spacing.md} />
+          <AppText variant="caption">We compare your live selfie with the first approved photo on your profile. The selfie is taken on a secure page in your browser, then you come back here.</AppText>
+          {ref ? <Pressable onPress={() => router.push('/edit-profile' as never)} accessibilityRole="button" hitSlop={8}><Text style={{ color: th.highlight, fontSize: 12, fontWeight: '700', marginTop: 6 }}>Wrong photo? Change your main photo ›</Text></Pressable> : null}
+          <Spacer h={spacing.sm} />
+          <AppText muted variant="caption">{CONSENT_TEXT}</AppText>
+          {blocker ? <><Spacer h={spacing.sm} /><AppText>{blocker}</AppText><Spacer h={spacing.sm} /><Button kind="secondary" label={ready === 'no_photo' ? 'Add a photo' : 'Open my photos'} onPress={() => router.push('/edit-profile' as never)} /></> : null}
           {watching ? <AppText style={{ marginTop: 10 }}>Waiting for the result. Finish the selfie in your browser, then come back here.</AppText> : null}
           {view.kind === 'failed' && !watching ? <ErrorText>{view.message}</ErrorText> : null}
           {error ? <ErrorText>{error}</ErrorText> : null}
           <Spacer h={12} />
-          <Button label={view.kind === 'failed' ? 'Try again' : 'I agree, start the check'} loading={busy} disabled={watching || available === null} onPress={() => void start()} />
+          <Button label={view.kind === 'failed' ? 'Try again' : 'I agree, start the check'} loading={busy} disabled={watching || available === null || ready === 'no_photo' || ready === 'in_review'} onPress={() => void start()} />
           <Button kind="ghost" label="Not now" onPress={() => router.back()} />
         </Card>
       )}

@@ -25,14 +25,15 @@
       "permissions": [
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ],
       "blockedPermissions": [
         "android.permission.ACCESS_BACKGROUND_LOCATION",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.READ_MEDIA_IMAGES"
       ]
     },
     "plugins": [
@@ -65,6 +66,17 @@
             "targetSdkVersion": 36,
             "minSdkVersion": 24
           }
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      [
+        "@daily-co/config-plugin-rn-daily-js",
+        {
+          "enableCamera": true,
+          "enableMicrophone": true,
+          "enableScreenShare": false,
+          "cameraPermission": "Waypoint uses your camera only during a video call you choose to join.",
+          "microphonePermission": "Waypoint uses your microphone only during a voice or video call you choose to join."
         }
       ]
     ],

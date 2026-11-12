@@ -200,7 +200,7 @@ import { createHandler } from '../src/app.ts';
 import { signHs256, verifyJwt } from '../src/jwt.ts';
 
 async function serve(selfie: SelfieVerification | null, ctx: ReturnType<typeof setup>) {
-  const handler = createHandler({ invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, livekit: null, selfie,
+  const handler = createHandler({ invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, callProvider: null, selfie,
     verifyToken: (t) => verifyJwt(t, { hsSecret: 's', now: ctx.clock(), audience: 'authenticated' }), ipRatePerMinute: 1000 });
   const server = createServer(handler); await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   return { base: `http://127.0.0.1:${(server.address() as AddressInfo).port}`, close: () => new Promise<void>((r) => server.close(() => r())) };

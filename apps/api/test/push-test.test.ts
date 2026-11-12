@@ -82,7 +82,7 @@ before(async () => {
   ctx = setup(); sender = new ScriptedSender();
   ctx.store.tokens.push({ userId: A, token: 'phone', platform: 'android' });
   const handler = createHandler({
-    invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, livekit: null,
+    invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, callProvider: null,
     push: createPushTester({ store: ctx.store, sender, configured: true }),
     verifyToken: (t) => verifyJwt(t, { hsSecret: SECRET, now: ctx.clock(), audience: 'authenticated' }),
     ipRatePerMinute: 1000,
@@ -112,7 +112,7 @@ test('GET /v1/config reports whether push is configured', async () => {
     const res = await fetch(`http://127.0.0.1:${(s2.address() as AddressInfo).port}/v1/config`, { headers: { authorization: 'Bearer x' } });
     const j = await res.json(); await new Promise<void>((r) => s2.close(() => r())); return j;
   };
-  const base2 = { invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, livekit: null, verifyToken: async () => ({ sub: A }) };
+  const base2 = { invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, callProvider: null, verifyToken: async () => ({ sub: A }) };
   assert.equal((await get(createHandler({ ...base2, push: createPushTester({ store: ctx.store, sender, configured: true }) }))).push, true);
   assert.equal((await get(createHandler({ ...base2, push: createPushTester({ store: ctx.store, sender, configured: false }) }))).push, false);
   assert.equal((await get(createHandler(base2))).push, false);

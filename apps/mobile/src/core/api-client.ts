@@ -52,7 +52,7 @@ export function createApiClient(o: { baseUrl: string; getToken: () => Promise<st
       json<{ invite: ApiInvite }>('POST', `/v1/invites/${id}/reschedule`, b).then((r) => r.invite),
     startLightChat: (id: string) => json<{ conversationId: string }>('POST', `/v1/invites/${id}/light-chat`),
     downloadIcs: async (id: string) => (await raw('GET', `/v1/invites/${id}/ics`)).text(),
-    callToken: (id: string) => json<{ url: string; token: string; room: string; notAfter: string }>('POST', `/v1/invites/${id}/call-token`),
+    callToken: (id: string) => json<{ url: string; token: string; room: string; audioOnly: boolean; notAfter: string }>('POST', `/v1/invites/${id}/call-token`),
     photoUrls: (items: { userId: string; modeId: string; all?: boolean }[]) =>
       json<{ results: { userId: string; modeId: string; urls: string[] }[]; expiresInSeconds: number }>('POST', '/v1/photos/urls', { items }),
     chatMediaUrl: (messageId: string) => json<{ url: string; expiresInSeconds: number }>('POST', '/v1/chat-media/url', { messageId }),
@@ -90,7 +90,18 @@ export function friendlyError(e: unknown): string {
     too_early: 'It is a bit early. You can join from 10 minutes before the start.',
     call_ended: 'This call window has ended.',
     calls_not_configured: 'Calls are not switched on yet.',
+    call_provider_error: 'The call service is not responding. Please try again in a moment.',
+    not_confirmed: 'This plan has to be confirmed before you can join the call.',
+    not_a_call: 'This invitation is not a call.',
     not_revealed: 'Tap to view the photo first.',
   };
   return map[code] ?? 'Something went wrong. Please try again.';
+}
+
+/** Invitation-specific wording. "unavailable" stays generic on purpose (it also covers blocks), but we can still point to what works. */
+export function inviteErrorText(e: unknown): string {
+  const code = e instanceof ApiError ? e.code : '';
+  if (code === 'needs_match') return 'This kind of invitation opens up once you have matched. Send a Like first.';
+  if (code === 'unavailable') return 'You cannot send this person an invitation right now. You can still send a Like, and invite them once you match.';
+  return friendlyError(e);
 }

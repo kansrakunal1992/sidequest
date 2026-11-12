@@ -64,7 +64,7 @@ test('photo access: batch size is capped', async () => {
 
 test('HTTP: /v1/photos/urls validates, authorises and reports when not configured', async () => {
   const w = world(); w.photo('a', B);
-  const mk = (photoAccess: PhotoAccess | null) => createServer(createHandler({ invites: w.svc, store: w.store, clock: w.clock, callsEnabled: false, livekit: null,
+  const mk = (photoAccess: PhotoAccess | null) => createServer(createHandler({ invites: w.svc, store: w.store, clock: w.clock, callsEnabled: false, callProvider: null,
     photoAccess, verifyToken: async (t) => ({ sub: t === 'a' ? A : B }) }));
   const s1 = mk(w.access); await new Promise<void>((r) => s1.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${(s1.address() as AddressInfo).port}`;

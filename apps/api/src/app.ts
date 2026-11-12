@@ -2,8 +2,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { InviteService } from './invite-service.ts';
 import type { Store } from './store.ts';
 import type { Invite, Result } from './types.ts';
-import { createLiveKitToken } from './livekit.ts';
-import type { LiveKitConfig } from './livekit.ts';
+import { CallProviderError } from './daily.ts';
+import type { CallProvider } from './daily.ts';
 import { timingSafeEqual } from 'node:crypto';
 import { handleMessageCreated, handleNotificationCreated } from './chat.ts';
 import type { ChatMediaAccess } from './chat.ts';
@@ -24,7 +24,7 @@ export interface AppDeps {
   verifyToken: (token: string) => Promise<{ sub: string }>;
   clock: () => Date;
   callsEnabled: boolean;
-  livekit: LiveKitConfig | null;
+  callProvider: CallProvider | null;
   corsOrigin?: string | null;
   userRatePerMinute?: number;
   ipRatePerMinute?: number;
@@ -247,12 +247,17 @@ export function createHandler(d: AppDeps): (req: IncomingMessage, res: ServerRes
         if (action === 'light-chat') { await readJson(req); return sendResult(res, await d.invites.startLightChat(uid, id), 200, (v) => v); }
         if (action === 'call-token') {
           await readJson(req);
-          if (!d.callsEnabled || !d.livekit) return send(res, 501, { error: 'calls_not_configured' });
+          if (!d.callsEnabled || !d.callProvider) return send(res, 501, { error: 'calls_not_configured' });
           const w = await d.invites.callWindow(uid, id);
           if (!w.ok) return sendResult(res, w, 200, () => null);
           const name = (await d.store.getUserFlags(uid))?.displayName;
-          const token = createLiveKitToken(d.livekit, { room: w.value.room, identity: uid, name, now: d.clock(), notAfter: w.value.until });
-          return send(res, 200, { url: d.livekit.url, token, room: w.value.room, notAfter: w.value.until.toISOString() });
+          try {
+            const g = await d.callProvider.createCall({ room: w.value.room, identity: uid, name, now: d.clock(), notAfter: w.value.until, audioOnly: w.value.audioOnly });
+            return send(res, 200, { url: g.url, token: g.token, room: w.value.room, audioOnly: w.value.audioOnly, notAfter: w.value.until.toISOString() });
+          } catch (e) {
+            log(`call provider failed: ${e instanceof CallProviderError ? e.message : 'unknown error'}`);   // never log the token or the key
+            return send(res, 502, { error: 'call_provider_error' });
+          }
         }
       }
     }

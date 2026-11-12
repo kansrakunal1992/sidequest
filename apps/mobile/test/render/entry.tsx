@@ -17,14 +17,20 @@ import YourData from '../../app/safety/data';
 import Notifications from '../../app/notifications';
 import Game from '../../app/game/[id]';
 import Restricted from '../../app/account-restricted';
+import MyProfile from '../../app/my-profile';
+import EditProfile from '../../app/edit-profile';
+import ProfileTab from '../../app/(tabs)/profile';
 import NewInvite from '../../app/invite/new';
+import CallScreen from '../../app/call/[id]';
+import { JoinCallCard } from '../../src/features/JoinCall';
+const JoinCard = () => { const q = (window as any).__params ?? {}; return <JoinCallCard inv={{ format: q.format ?? 'video', state: q.state ?? 'accepted', startsAt: q.startsAt, durationMinutes: 20 }} callsOn={q.callsOn !== '0'} name="Rohan" onJoin={() => { (window as any).__joined = true; }} now={new Date(q.now)} />; };
 import { PersonCardView } from '../../src/features/PersonCardView';
 import { useDateIdeas } from '../../src/lib/date-ideas';
-const CardWithIdeas = () => { const ideasFor = useDateIdeas(['u1'], 'friendship'); return <PersonCardView card={{ userId: 'u1', displayName: 'Aman', age: 29, headline: 'Hi', verified: false, sharedInterests: [], distanceKm: null, availability: null, likesYou: false } as any} mode="friendship" ideas={ideasFor('u1')} />; };
 import { DateIdeasEditor } from '../../src/features/DateIdeasEditor';
 import { DateIdeasCard } from '../../src/features/DateIdeasCard';
+const CardWithIdeas = () => { const ideasFor = useDateIdeas(['u1'], 'friendship'); return <PersonCardView card={{ userId: 'u1', displayName: 'Aman', age: 29, headline: 'Hi', verified: false, sharedInterests: [], distanceKm: null, availability: null, likesYou: false } as any} mode="friendship" ideas={ideasFor('u1')} />; };
 const IdeasCard = () => { const q = (window as any).__params ?? {}; return <DateIdeasCard userId="u1" modeId="friendship" matched={q.matched === '1'} onPick={(a) => { (window as any).__picked = a; }} />; };
 
 const screens: Record<string, React.ComponentType> = { circles: CirclesTab, 'circle-new': NewCircle, circle: CircleDetail, teams: Teams, 'roulette-new': NewRoulette, 'double-date-new': NewDoubleDate,
-  safety: SafetyHub, trusted: Trusted, wing: Wing, verify: Verify, together: Together, privacy: Privacy, blocked: Blocked, data: YourData, notifications: Notifications, game: Game, restricted: Restricted, 'invite-new': NewInvite, 'card-ideas': CardWithIdeas, 'date-ideas-editor': DateIdeasEditor, 'date-ideas-card': IdeasCard };
+  safety: SafetyHub, trusted: Trusted, wing: Wing, verify: Verify, together: Together, privacy: Privacy, blocked: Blocked, data: YourData, notifications: Notifications, game: Game, restricted: Restricted, 'invite-new': NewInvite, call: CallScreen, 'join-card': JoinCard, 'my-profile': MyProfile, 'edit-profile': EditProfile, profile: ProfileTab, 'card-ideas': CardWithIdeas, 'date-ideas-editor': DateIdeasEditor, 'date-ideas-card': IdeasCard };
 (window as any).__mount = (name: string) => { const C = screens[name]!; createRoot(document.getElementById('root')!).render(<C />); };

@@ -51,7 +51,7 @@ cd apps/api && PG_TEST_URL=postgres://... node --test test/pg-integration.test.t
 - Invitations: compose (format, time, duration, note), list with "Needs your reply", detail with exactly the actions the shared state machine allows (tested against it for every state and role). "Too new to say hi" opens nothing automatically; only the recipient can later say hello.
 - Calendar tab shows confirmed, cancelled and past plans; "Add to my calendar" opens the phone's calendar app (no permission).
 - Private post-meeting questions after an invitation is marked done.
-- Honest gaps: in-app voice/video needs the LiveKit client SDK (native module) and is not built, so the app shows no Join button; voice notes in chat not built; reminders and message pushes need Firebase and a webhook (see docs).
+- Honest gaps: in-app voice/video: now built on Daily (v19; needs a new native build and a real-phone test); voice notes in chat not built; reminders and message pushes need Firebase and a webhook (see docs).
 
 ## NEXT STEPS (checkpoint v10): do these in order
 1. Milestone 9: release prep. End-to-end checks (real server bundle plus worker against a real Postgres through HTTP), Google Play readiness notes (check the current Play policy pages for dating apps, Data safety form, target API level, closed-testing requirement for new developer accounts), a signed AAB guide, and a store listing text pass. Research current Play requirements before writing them.

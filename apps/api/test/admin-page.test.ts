@@ -58,7 +58,7 @@ before(async () => {
   ctx.store.photos.set(PHOTO_P, { id: PHOTO_P, userId: A, storagePath: `${A}/p.jpg`, status: 'pending' });
   ctx.store.photos.set(PHOTO_A, { id: PHOTO_A, userId: A, storagePath: `${A}/a.jpg`, status: 'approved' });
   ctx.store.photos.set(PHOTO_R, { id: PHOTO_R, userId: A, storagePath: `${A}/r.jpg`, status: 'approved' }); ctx.store.reportedPhotoIds.add(PHOTO_R);
-  server = createServer(createHandler({ invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, livekit: null, ipRatePerMinute: 1000,
+  server = createServer(createHandler({ invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, callProvider: null, ipRatePerMinute: 1000,
     admin: { supabaseUrl: SUPA, anonKey: 'anon-key' }, adminPhotos: new AdminPhotoAccess(ctx.store, signer),
     verifyToken: (t) => verifyJwt(t, { hsSecret: SECRET, now: ctx.clock(), audience: 'authenticated' }) }));
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
@@ -91,7 +91,7 @@ test('POST /v1/admin/photo-url: only moderators, only pending or reported photos
 });
 
 test('without the anon key the page and the route are off', async () => {
-  const h = createServer(createHandler({ invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, livekit: null,
+  const h = createServer(createHandler({ invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, callProvider: null,
     verifyToken: (t) => verifyJwt(t, { hsSecret: SECRET, now: ctx.clock(), audience: 'authenticated' }) }));
   await new Promise<void>((r) => h.listen(0, '127.0.0.1', r));
   const b = `http://127.0.0.1:${(h.address() as AddressInfo).port}`;

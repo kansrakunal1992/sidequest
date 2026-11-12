@@ -209,7 +209,7 @@ export class InviteService {
   }
 
   /** Who may join a live call, and when. The caller turns this into a provider token. */
-  async callWindow(actorId: string, id: string): Promise<Result<{ room: string; from: Date; until: Date }>> {
+  async callWindow(actorId: string, id: string): Promise<Result<{ room: string; from: Date; until: Date; audioOnly: boolean }>> {
     const l = await this.load(actorId, id);
     if (!l.ok) return l;
     const { inv } = l.value;
@@ -220,7 +220,7 @@ export class InviteService {
     const now = this.deps.clock();
     if (now < from) return err(409, 'too_early');
     if (now > until) return err(409, 'call_ended');
-    return ok({ room: `invite-${inv.id}`, from, until });
+    return ok({ room: `invite-${inv.id}`, from, until, audioOnly: inv.format === 'voice' });
   }
 
   private async syncCalendar(inv: Invite, status: CalendarEntry['status']): Promise<void> {

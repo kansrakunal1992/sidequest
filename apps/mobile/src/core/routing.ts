@@ -24,7 +24,7 @@ export function allowedSegments(route: Exclude<Route, 'loading'>): string[] {
   switch (route) {
     case '/(auth)/welcome': return ['(auth)'];
     case '/(onboarding)/age': return ['(onboarding)'];
-    case '/(tabs)/discover': return ['(tabs)', 'person', 'likes', 'edit-profile', 'chat', 'invite', 'open-call', 'activity', ...NEW_SCREEN_SEGMENTS];
+    case '/(tabs)/discover': return ['(tabs)', 'person', 'likes', 'edit-profile', 'my-profile', 'call', 'chat', 'invite', 'open-call', 'activity', ...NEW_SCREEN_SEGMENTS];
     case '/account-restricted': return ['account-restricted'];
   }
 }

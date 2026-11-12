@@ -1,3 +1,4 @@
+import { CallProviderError } from '../src/daily.ts';
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
@@ -21,6 +22,9 @@ async function call(method: string, path: string, user: string | null, body?: un
   let json: any = null; try { json = JSON.parse(text); } catch { /* not json */ }
   return { status: res.status, json, text, headers: res.headers };
 }
+// A stand-in for Daily: records what was asked and returns a recognisable token. The real provider is tested in daily.test.ts.
+const callLog: any[] = []; let failNextCall = false;
+const fakeCalls = { createCall: async (r: any) => { callLog.push(r); if (failNextCall) { failNextCall = false; throw new CallProviderError('down'); } return { url: `https://wp.daily.co/${r.room}`, token: `tok-${r.identity}` }; } };
 const startsAt = (mins: number) => new Date(T0.getTime() + mins * 60_000).toISOString();
 const body = (o: object = {}) => ({ recipientId: B, modeId: 'serious_dating', format: 'virtual_coffee', startsAt: startsAt(120), timezone: 'Asia/Kolkata', durationMinutes: 20, note: 'hi', ...o });
 
@@ -29,7 +33,7 @@ before(async () => {
   ctx.store.addUser(C);
   const handler = createHandler({
     invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: true,
-    livekit: { url: 'wss://lk.example', apiKey: 'lk', apiSecret: 'lksecret' },
+    callProvider: fakeCalls,
     verifyToken: (t) => verifyJwt(t, { hsSecret: SECRET, now: ctx.clock(), audience: 'authenticated' }),
     userRatePerMinute: 40, ipRatePerMinute: 1000,
   });
@@ -89,8 +93,12 @@ test('full journey over HTTP: invite, reschedule, accept, calendar file, call to
   ctx.setTime(new Date(T0.getTime() + 298 * 60_000));
   const ct = await call('POST', `/v1/invites/${id}/call-token`, A);
   assert.equal(ct.status, 200);
-  const claims = await verifyJwt(ct.json.token, { hsSecret: 'lksecret', now: ctx.clock() });
-  assert.equal(claims.sub, A); assert.equal((claims as any).video.room, `invite-${id}`);
+  assert.equal(ct.json.token, `tok-${A}`); assert.equal(ct.json.url, `https://wp.daily.co/invite-${id}`); assert.equal(ct.json.room, `invite-${id}`);
+  assert.equal(ct.json.audioOnly, false, 'a virtual coffee is a video call');
+  assert.equal(callLog.at(-1).identity, A); assert.equal(callLog.at(-1).room, `invite-${id}`);
+  failNextCall = true;
+  const down = await call('POST', `/v1/invites/${id}/call-token`, A);
+  assert.equal(down.status, 502); assert.equal(down.json.error, 'call_provider_error'); assert.ok(!JSON.stringify(down.json).includes('down'), 'provider details are not leaked');
   assert.equal((await call('POST', `/v1/invites/${id}/call-token`, C)).status, 404);
 
   const cancelled = await call('POST', `/v1/invites/${id}/cancel`, B);
@@ -132,7 +140,7 @@ test('per-user rate limit returns 429 with Retry-After', async () => {
 });
 
 test('calls stay off unless configured', async () => {
-  const off = createHandler({ invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, livekit: null,
+  const off = createHandler({ invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, callProvider: null,
     verifyToken: async () => ({ sub: A }) });
   const s2 = createServer(off); await new Promise<void>((r) => s2.listen(0, '127.0.0.1', r));
   const res = await fetch(`http://127.0.0.1:${(s2.address() as AddressInfo).port}/v1/invites/00000000-0000-4000-8000-000000000000/call-token`,
@@ -141,9 +149,12 @@ test('calls stay off unless configured', async () => {
   await new Promise<void>((r) => s2.close(() => r()));
 });
 
-test('config: lists every problem; calls need the whole LiveKit trio', () => {
+test('config: lists every problem; calls need the Daily key and domain', () => {
   assert.throws(() => loadConfig({}), /DATABASE_URL is required[\s\S]*SUPABASE_URL is required/);
-  assert.throws(() => loadConfig({ DATABASE_URL: 'x', SUPABASE_URL: 'https://a.supabase.co', FEATURE_VIDEO_CALLS: 'true' }), /LIVEKIT_URL/);
+  assert.throws(() => loadConfig({ DATABASE_URL: 'x', SUPABASE_URL: 'https://a.supabase.co', FEATURE_VIDEO_CALLS: 'true' }), /DAILY_API_KEY and DAILY_DOMAIN/);
+  assert.throws(() => loadConfig({ DATABASE_URL: 'x', SUPABASE_URL: 'https://a.supabase.co', FEATURE_VIDEO_CALLS: 'true', DAILY_API_KEY: 'k', DAILY_DOMAIN: 'bad/domain' }), /only the name before/);
+  const withCalls = loadConfig({ DATABASE_URL: 'x', SUPABASE_URL: 'https://a.supabase.co', FEATURE_VIDEO_CALLS: 'true', DAILY_API_KEY: 'k', DAILY_DOMAIN: 'https://waypoint.daily.co/' });
+  assert.equal(withCalls.callsEnabled, true); assert.equal(withCalls.daily?.domain, 'waypoint', 'a pasted full address is trimmed to the name');
   assert.throws(() => loadConfig({ DATABASE_URL: 'x', SUPABASE_URL: 'https://a.supabase.co', FCM_SERVICE_ACCOUNT_JSON: '{oops' }), /not valid JSON/);
   const c = loadConfig({ DATABASE_URL: 'x', SUPABASE_URL: 'https://a.supabase.co/', PORT: '9000' });
   assert.equal(c.supabaseUrl, 'https://a.supabase.co'); assert.equal(c.port, 9000); assert.equal(c.callsEnabled, false);

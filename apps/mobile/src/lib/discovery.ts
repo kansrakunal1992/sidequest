@@ -1,7 +1,7 @@
 import type { ModeId } from '@sidequest/shared';
 import { mapCard, mapLike, mapMatch, mapProfile, mapSummary, mapVisitor } from '@/core/mappers';
 import type { SwipeAction } from '@/core/swipe';
-import { supabase } from './supabase';
+import { supabase } from '@/lib/supabase';
 
 export interface Filters { interest: string | null; maxKm: number | null; availableTonight: boolean }
 export const noFilters: Filters = { interest: null, maxKm: null, availableTonight: false };

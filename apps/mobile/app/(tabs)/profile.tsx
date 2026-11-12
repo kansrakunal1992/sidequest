@@ -1,11 +1,13 @@
 import { LegalLinks } from '@/features/LegalLinks';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Switch, Text, View } from 'react-native';
 import { MODE_TILES } from '@/core/modes-ui';
 import { MODES, colors, spacing } from '@/design/theme';
 import { AppText, Button, Card, ErrorText, Row, Screen, Spacer } from '@/design/ui';
+import { GettingStartedCard, ProfileHeader } from '@/features/GettingStarted';
+import { useGettingStarted } from '@/lib/getting-started';
 import { useModes } from '@/lib/modes';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
@@ -16,6 +18,9 @@ export default function Profile() {
   const { active, togglePause, addMode } = useModes();
   const { signOut, session } = useSession();
   const router = useRouter();
+  const gs = useGettingStarted();
+  const { refresh: refreshGs } = gs;
+  useFocusEffect(useCallback(() => { refreshGs(); }, [refreshGs]));
   const [error, setError] = useState<string | null>(null);
   const [incognito, setIncognito] = useState(false);
   const [intros, setIntros] = useState(true);
@@ -42,10 +47,9 @@ export default function Profile() {
 
   return (
     <Screen>
-      <AppText variant="headline" accessibilityRole="header">Profile</AppText>
-      <AppText muted variant="caption">{session?.user.email}</AppText>
+      <ProfileHeader gs={gs} email={session?.user.email} />
       <Spacer h={spacing.md} />
-      <Button label="Edit profile" onPress={() => router.push('/edit-profile' as never)} />
+      <GettingStartedCard gs={gs} />
       <Spacer h={spacing.md} />
       <Button kind="secondary" label="Notifications" onPress={() => router.push('/notifications' as never)} />
       <Spacer h={spacing.md} />

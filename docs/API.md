@@ -15,7 +15,7 @@ Everything that touches Likes, profiles, chat messages and photos goes directly 
 | `POST /v1/invites/:id/light-chat` | recipient, after Too new | recipient decides when to say hi |
 | `POST /v1/invites/:id/complete` | either, after start | triggers private safety prompt |
 | `GET /v1/invites/:id/ics` | either | `text/calendar`; no email or phone included |
-| `POST /v1/invites/:id/call-token` | either, in the call window | 501 unless calls are configured |
+| `POST /v1/invites/:id/call-token` | either, in the call window | 501 unless calls are configured; 502 `call_provider_error` if Daily does not answer. Returns `{ url, token, room, audioOnly, notAfter }` |
 
 Error codes worth handling in the app: `needs_match` (403), `unavailable` (404, also used for blocks and hidden modes), `pending_exists` / `non_match_limit` / `daily_limit` / `rate_limited` (429), `invalid_transition` (409), `start_time_out_of_range` (400), `too_early` / `call_ended` (409).
 

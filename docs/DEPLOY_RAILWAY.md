@@ -33,7 +33,15 @@ Supabase > Database > Webhooks, two webhooks, both HTTP POST with header `x-webh
 The API ignores anything that is not an insert, and ignores notifications it wrote itself (they are pushed when created).
 
 ## 5. Calls (optional, off by default)
-Set `FEATURE_VIDEO_CALLS=true` plus `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` (LiveKit Cloud or self-hosted). The API issues a short-lived, single-room token only to the two people on a confirmed invite, from 10 minutes before the start until 30 minutes after the end. With the flag off, `POST /v1/invites/:id/call-token` returns `501 calls_not_configured`.
+In-app voice and video calls use **Daily** (daily.co). Set `FEATURE_VIDEO_CALLS=true`, `DAILY_API_KEY` and `DAILY_DOMAIN` (only the name before `.daily.co`).
+1. Create a free Daily account, then copy the API key from the Developers page and note your domain name.
+2. Put both values in Railway's variables. The key stays on the server; the phone only ever receives a token for one room.
+3. The API makes a private room for each confirmed invitation (two people at most, closes itself when the call window ends) and issues a short-lived token
+   only to the two people on that invitation, from 10 minutes before the start until 30 minutes after the planned end. Voice invitations start with the camera off.
+4. With the flag off or a key missing, `POST /v1/invites/:id/call-token` returns `501 calls_not_configured` and the app shows "Calling is not switched on yet".
+5. The app needs a **new development / production build** after this change (it adds Daily's native module and the microphone and camera permissions). A JavaScript-only update is not enough.
+6. Cost: Daily's free allowance is about 10,000 participant-minutes a month (a 10-minute call between two people uses 20). Check daily.co/pricing for current terms and watch usage in the Daily dashboard.
+7. Add Daily to your privacy policy's list of providers (done in the API's built-in page) and answer the camera/microphone questions in the Play Console Data Safety form.
 
 ## 6. Operating notes
 - Logs are JSON lines. The API refuses to start and lists every missing variable.

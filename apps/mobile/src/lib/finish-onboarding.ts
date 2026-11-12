@@ -17,8 +17,8 @@ export async function finishOnboarding(state: OnboardingState, userId: string, o
   const saved = await supabase.rpc('save_onboarding', { p: payload });
   if (saved.error) throw friendly(saved.error);
   onProgress('Uploading your photos');
-  const { uploaded } = await uploadPhotos(userId, state.photos.map((p) => p.uri), state.modes);
-  if (uploaded === 0) throw new Error('Your photos did not upload. Check your connection and tap Finish again.');
+  const { uploaded, errors } = await uploadPhotos(userId, state.photos.map((p) => p.uri), state.modes);
+  if (uploaded === 0) throw new Error(`Your photos did not upload. ${errors[0] ?? 'Check your connection'} Then tap Finish again.`);
   onProgress('Almost there');
   const done = await supabase.rpc('finish_onboarding');
   if (done.error) throw friendly(done.error);

@@ -35,7 +35,7 @@ test('pages carry only their own nonce, no inline handlers, no remote code; the 
 let server: Server, base = '';
 const boot = async (legal: LegalConfig | null) => {
   const ctx = setup();
-  const s = createServer(createHandler({ invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, livekit: null, legal, verifyToken: async () => null }));
+  const s = createServer(createHandler({ invites: ctx.svc, store: ctx.store, clock: ctx.clock, callsEnabled: false, callProvider: null, legal, verifyToken: async () => null }));
   await new Promise<void>((r) => s.listen(0, '127.0.0.1', r));
   return { s, b: `http://127.0.0.1:${(s.address() as AddressInfo).port}` };
 };

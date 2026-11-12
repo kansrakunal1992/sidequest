@@ -2,7 +2,7 @@ import * as IntentLauncher from 'expo-intent-launcher';
 import { mapCalendar } from '@/core/mappers';
 import type { ApiInvite } from '@/core/api-client';
 import { inviteTitle, placeText } from '@/core/invite-ui';
-import { supabase } from './supabase';
+import { supabase } from '@/lib/supabase';
 
 export interface Counterpart { userId: string; displayName: string; age: number; verified: boolean }
 export async function counterparts(ids: string[]): Promise<Record<string, Counterpart>> {

@@ -5,6 +5,7 @@ import { ActivityIndicator, Dimensions, Image, Pressable, ScrollView, StyleSheet
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ModeId } from '@sidequest/shared';
 import type { FullProfile } from '@/core/mappers';
+import { inviteAvailability } from '@/core/invite-ui';
 import { availabilityLabel } from '@/core/reasons';
 import { MODES, colors, radius, spacing } from '@/design/theme';
 import { AppText, Button, Card, Chip, ErrorText, Row, Spacer, Wrap } from '@/design/ui';
@@ -49,6 +50,7 @@ export default function PersonScreen() {
   if (!p) return <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center' }}><ActivityIndicator color={th.highlight} size="large" /></View>;
 
   const m = MODES[mode];
+  const invite = inviteAvailability(mode, !!matchId);
   async function act(a: 'pass' | 'like' | 'spark') {
     try {
       if (a === 'pass') { await passPerson(id!, mode!); router.back(); return; }
@@ -88,7 +90,9 @@ export default function PersonScreen() {
           {p.interests.length ? <><Spacer /><Wrap>{p.interests.map((i) => <Chip key={i} label={i} />)}</Wrap></> : null}
           <Spacer h={20} />
           {matchId ? <><Button label="Message" onPress={async () => { try { const c = await ensureMatchConversation(matchId); router.push(`/chat/${c}` as never); } catch { setError('Could not open the chat.'); } }} /><Spacer h={10} /></> : null}
-          <Button kind="secondary" label="Send an invitation" onPress={() => router.push({ pathname: '/invite/new', params: { to: id, mode, name: p.displayName } } as never)} />
+          {invite.canInvite
+            ? <Button kind="secondary" label="Send an invitation" onPress={() => router.push({ pathname: '/invite/new', params: { to: id, mode, name: p.displayName } } as never)} />
+            : <Card><AppText variant="caption">{invite.hint}</AppText></Card>}
           <Spacer h={24} />
           <Button kind="ghost" label="Report or block" onPress={() => setMenu(true)} />
         </View>

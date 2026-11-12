@@ -62,7 +62,7 @@ test('storage signer builds a correct, encoded request', async () => {
 test('HTTP: photo submit and age-verification routes', async () => {
   const { store, svc: invites, clock } = photoSetup('required', null);
   const photos = new PhotoService({ store, moderator: null, signer: null, mode: 'off' });
-  const h = createServer(createHandler({ invites, store, clock, callsEnabled: false, livekit: null, photos, ageVerifier: null,
+  const h = createServer(createHandler({ invites, store, clock, callsEnabled: false, callProvider: null, photos, ageVerifier: null,
     verifyToken: async (t) => ({ sub: t === 'a' ? A : B }) }));
   await new Promise<void>((r) => h.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${(h.address() as AddressInfo).port}`;

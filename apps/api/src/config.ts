@@ -6,7 +6,8 @@ export interface Config {
   pgSsl: boolean;
   fcmServiceAccountJson: string | null;
   callsEnabled: boolean;
-  livekit: { url: string; apiKey: string; apiSecret: string } | null;
+  /** In-app calls through Daily. Null = switched off. */
+  daily: { apiKey: string; domain: string } | null;
   corsOrigin: string | null;
   photoModeration: 'required' | 'off';
   serviceRoleKey: string | null;
@@ -30,11 +31,12 @@ export function loadConfig(env: Record<string, string | undefined>, role: 'api' 
   if (env.FCM_SERVICE_ACCOUNT_JSON) { try { JSON.parse(env.FCM_SERVICE_ACCOUNT_JSON); } catch { problems.push('FCM_SERVICE_ACCOUNT_JSON is not valid JSON'); } }
 
   const wantCalls = env.FEATURE_VIDEO_CALLS === 'true';
-  let livekit: Config['livekit'] = null;
+  let daily: Config['daily'] = null;
   if (wantCalls) {
-    const url = env.LIVEKIT_URL, apiKey = env.LIVEKIT_API_KEY, apiSecret = env.LIVEKIT_API_SECRET;
-    if (!url || !apiKey || !apiSecret) problems.push('FEATURE_VIDEO_CALLS=true needs LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET');
-    else livekit = { url, apiKey, apiSecret };
+    const apiKey = env.DAILY_API_KEY?.trim(), domain = env.DAILY_DOMAIN?.trim().replace(/^https?:\/\//, '').replace(/\.daily\.co\/?$/, '');
+    if (!apiKey || !domain) problems.push('FEATURE_VIDEO_CALLS=true needs DAILY_API_KEY and DAILY_DOMAIN (the part before .daily.co)');
+    else if (!/^[a-z0-9-]+$/i.test(domain)) problems.push('DAILY_DOMAIN must be only the name before .daily.co, for example "waypoint"');
+    else daily = { apiKey, domain };
   }
   // The worker deletes accounts and writes exports through the Supabase Admin API; without the key those jobs would silently never run.
   if (role === 'worker' && !env.SUPABASE_SERVICE_ROLE_KEY?.trim()) problems.push('SUPABASE_SERVICE_ROLE_KEY is required for the worker (account deletion and data exports)');
@@ -52,7 +54,7 @@ export function loadConfig(env: Record<string, string | undefined>, role: 'api' 
   return {
     port, databaseUrl, supabaseUrl, jwtSecret: env.SUPABASE_JWT_SECRET?.trim() || null,
     pgSsl: env.PGSSL !== 'disable', fcmServiceAccountJson: env.FCM_SERVICE_ACCOUNT_JSON || null,
-    callsEnabled: wantCalls && livekit !== null, livekit, corsOrigin: env.CORS_ORIGIN?.trim() || null,
+    callsEnabled: wantCalls && daily !== null, daily, corsOrigin: env.CORS_ORIGIN?.trim() || null,
     photoModeration: pm as 'required' | 'off', serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY?.trim() || null,
     webhookSecret: env.WEBHOOK_SECRET?.trim() || null, anonKey: env.SUPABASE_ANON_KEY?.trim() || null,
     legalName: env.LEGAL_NAME?.trim() || null, contactEmail: env.CONTACT_EMAIL?.trim() || null, childSafetyEmail: env.CHILD_SAFETY_EMAIL?.trim() || env.CONTACT_EMAIL?.trim() || null, appName: env.APP_NAME?.trim() || 'Waypoint',

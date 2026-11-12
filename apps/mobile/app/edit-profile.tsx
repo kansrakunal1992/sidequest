@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SUGGESTED_INTERESTS, LIMITS, nameProblem } from '@/core/onboarding';
 import { PROMPT_LIMITS, PROMPT_QUESTIONS, cleanPrompts, validateModeText } from '@/core/prompts';
 import type { PromptAnswer } from '@/core/prompts';
@@ -11,13 +11,15 @@ import { DateIdeasEditor } from '@/features/DateIdeasEditor';
 import { db } from '@/lib/db';
 import { AppText, Button, Card, Chip, ErrorText, Row, Screen, Spacer, TextField, Wrap } from '@/design/ui';
 import { useModes } from '@/lib/modes';
-import { pickPhotos, uploadPhotos } from '@/lib/photos';
+import { loadMyPhotos, makeMainPhoto, pickPhotos, uploadPhotos } from '@/lib/photos';
+import { MAX_PHOTOS, nextPositions, uploadMessage } from '@/core/photo-upload';
+import type { OwnPhoto } from '@/core/self-profile';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 import type { ModeId } from '@sidequest/shared';
 import { useTheme } from '@/lib/theme';
 
-interface Photo { id: string; path: string; status: string; visibleModes: string[]; url?: string }
+type Photo = OwnPhoto;
 const STATUS: Record<string, string> = { pending: 'In review', approved: 'Live', rejected: 'Not approved' };
 
 export default function EditProfile() {
@@ -32,13 +34,11 @@ export default function EditProfile() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [issues, setIssues] = useState<ReturnType<typeof parsePhotoIssues>>([]);
   const [msg, setMsg] = useState<string | null>(null); const [err, setErr] = useState<string | null>(null); const [busy, setBusy] = useState(false);
+  // Photo feedback lives INSIDE the Photos card. The card is at the bottom of a long scroll, so a message at the top of the screen was never seen.
+  const [photoMsg, setPhotoMsg] = useState<string | null>(null); const [photoErr, setPhotoErr] = useState<string | null>(null); const [uploading, setUploading] = useState(false);
 
   const loadPhotos = useCallback(async () => {
-    const { data } = await supabase.from('profile_photos').select('id, storage_path, moderation_status, visible_modes, position').eq('user_id', uid).order('position');
-    const rows: Photo[] = (data ?? []).map((r: any) => ({ id: r.id, path: r.storage_path, status: r.moderation_status, visibleModes: r.visible_modes ?? [] }));
-    const signed = rows.length ? await supabase.storage.from('profile-photos').createSignedUrls(rows.map((r) => r.path), 600) : { data: [] as { path: string; signedUrl: string }[] };
-    const byPath = new Map((signed.data ?? []).map((s) => [s.path, s.signedUrl]));
-    setPhotos(rows.map((r) => ({ ...r, url: byPath.get(r.path) ?? undefined })));
+    try { setPhotos(await loadMyPhotos(uid)); } catch (e) { setPhotoErr(`Could not load your photos. ${(e as Error).message ?? ''}`.trim()); }
     setIssues(await db.myPhotoIssues().then(parsePhotoIssues).catch(() => []));   // reasons are a bonus: if the function is missing the photos still show
   }, [uid]);
 
@@ -70,30 +70,48 @@ export default function EditProfile() {
     const { error } = await supabase.from('mode_specific_profiles').upsert({ user_id: uid, mode_id: editMode, headline: headline.trim() || null, bio: modeBio.trim() || null, prompts: cleanPrompts(prompts) });
     if (error) throw error; flash(`Saved for ${MODES[editMode].label}`);
   });
-  const toggleVisible = (ph: Photo) => run(async () => {
+  async function photoRun(fn: () => Promise<void>) { setPhotoErr(null); setPhotoMsg(null); try { await fn(); } catch (e) { setPhotoErr((e as Error).message || 'That did not work. Please try again.'); } }
+  const toggleVisible = (ph: Photo) => photoRun(async () => {
     if (!editMode) return;
     const next = ph.visibleModes.includes(editMode) ? ph.visibleModes.filter((m) => m !== editMode) : [...ph.visibleModes, editMode];
     const { error } = await supabase.from('profile_photos').update({ visible_modes: next }).eq('id', ph.id);
     if (error) throw error; await loadPhotos();
   });
-  const removePhoto = (ph: Photo) => run(async () => {
+  const removePhoto = (ph: Photo) => photoRun(async () => {
     if (photos.length <= 1) throw new Error('Keep at least one photo.');
     await supabase.storage.from('profile-photos').remove([ph.path]);
     const { error } = await supabase.from('profile_photos').delete().eq('id', ph.id);
     if (error) throw error; await loadPhotos();
   });
-  const addPhotos = () => run(async () => {
-    const uris = await pickPhotos(6 - photos.length); if (!uris.length) return;
-    const { failed } = await uploadPhotos(uid, uris, active.filter((a) => !a.paused).map((a) => a.modeId));
-    await loadPhotos(); if (failed) throw new Error(`${failed} photo${failed > 1 ? 's' : ''} did not upload. Try again.`); flash('Photos added. They are reviewed before others can see them.');
-  });
+  const addPhotos = async () => {
+    if (uploading) return;
+    setPhotoErr(null); setPhotoMsg(null);
+    let uris: string[] = [];
+    try { uris = await pickPhotos(MAX_PHOTOS - photos.length); } catch (e) { setPhotoErr(`Could not open your photos. ${(e as Error).message ?? ''}`.trim()); return; }
+    if (!uris.length) return;
+    setUploading(true);
+    try {
+      const sum = await uploadPhotos(uid, uris, active.filter((a) => !a.paused).map((a) => a.modeId), nextPositions(photos.map((p) => p.position), uris.length)[0] ?? 0);
+      await loadPhotos();
+      const bad = uploadMessage(sum);
+      if (bad) setPhotoErr(bad);
+      if (sum.uploaded) setPhotoMsg(`${sum.uploaded} photo${sum.uploaded > 1 ? 's' : ''} added. They are reviewed before others can see them.`);
+    } finally { setUploading(false); }
+  };
+  const setMain = async (ph: Photo) => {
+    setPhotoErr(null); setPhotoMsg(null);
+    try { await makeMainPhoto(photos, ph.id); await loadPhotos(); setPhotoMsg('Main photo updated.'); } catch (e) { setPhotoErr(`Could not change your main photo. ${(e as Error).message ?? ''}`.trim()); }
+  };
 
   const unused = PROMPT_QUESTIONS.filter((q) => !prompts.some((p) => p.q === q));
   return (
     <Screen>
       <Row style={{ marginBottom: spacing.md }}>
         <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Back" hitSlop={12}><Ionicons name="chevron-back" size={26} color={colors.text} /></Pressable>
-        <AppText variant="headline" accessibilityRole="header">Edit profile</AppText>
+        <AppText variant="headline" accessibilityRole="header" style={{ flex: 1 }}>Edit profile</AppText>
+        <Pressable onPress={() => router.push('/my-profile' as never)} accessibilityRole="button" accessibilityLabel="Preview how others see your profile" hitSlop={10}>
+          <Row><Ionicons name="eye-outline" size={18} color={th.highlight} /><Text style={{ color: th.highlight, fontWeight: '700' }}>Preview</Text></Row>
+        </Pressable>
       </Row>
       {msg ? <Text style={{ color: colors.cyan, marginBottom: 8 }} accessibilityLiveRegion="polite">{msg}</Text> : null}
       {err ? <ErrorText>{err}</ErrorText> : null}
@@ -139,22 +157,30 @@ export default function EditProfile() {
         <AppText variant="caption">Choose which photos appear in {editMode ? MODES[editMode].label : 'each vibe'}. New photos are reviewed before anyone else can see them.</AppText>
         <Spacer h={spacing.md} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-          {photos.map((ph) => {
+          {photos.map((ph, idx) => {
             const shown = !!editMode && ph.visibleModes.includes(editMode);
             return (
               <View key={ph.id} style={st.photo}>
                 {ph.url ? <Image source={{ uri: ph.url }} style={StyleSheet.absoluteFill} /> : null}
-                <View style={st.badge}><Text style={st.badgeText}>{STATUS[ph.status] ?? ph.status}</Text></View>
+                <View style={st.badge}><Text style={st.badgeText}>{idx === 0 ? 'Main · ' : ''}{STATUS[ph.status] ?? ph.status}</Text></View>
                 <Pressable onPress={() => void removePhoto(ph)} accessibilityRole="button" accessibilityLabel="Remove photo" style={st.x}><Ionicons name="close" size={16} color="#fff" /></Pressable>
                 <Pressable onPress={() => void toggleVisible(ph)} accessibilityRole="switch" accessibilityState={{ checked: shown }} accessibilityLabel={`Show in ${editMode ? MODES[editMode].label : 'this vibe'}`} style={[st.eye, shown && { backgroundColor: th.accent }]}>
                   <Ionicons name={shown ? 'eye' : 'eye-off'} size={16} color="#fff" /></Pressable>
+                {idx > 0 ? <Pressable onPress={() => void setMain(ph)} accessibilityRole="button" accessibilityLabel="Make this your main photo" style={st.star}><Ionicons name="star-outline" size={16} color="#fff" /></Pressable> : null}
               </View>
             );
           })}
+          {photos.length < MAX_PHOTOS ? (
+            <Pressable onPress={() => void addPhotos()} disabled={uploading} accessibilityRole="button" accessibilityLabel="Add photos" style={[st.photo, st.add]}>
+              {uploading ? <ActivityIndicator color={th.highlight} /> : <><Ionicons name="add" size={28} color={th.highlight} /><Text style={{ color: th.highlight, fontWeight: '700', fontSize: 12 }}>Add photos</Text></>}
+            </Pressable>
+          ) : null}
         </View>
+        {uploading ? <Text style={{ color: colors.textMuted, marginTop: 8 }} accessibilityLiveRegion="polite">Uploading…</Text> : null}
+        {photoMsg ? <Text style={{ color: colors.cyan, marginTop: 8 }} accessibilityLiveRegion="polite">{photoMsg}</Text> : null}
+        {photoErr ? <ErrorText>{photoErr}</ErrorText> : null}
         {photoIssueLines(photos.map((p) => p.id), issues).map((l) => <ErrorText key={l}>{l}</ErrorText>)}
-        <Spacer />
-        {photos.length < 6 ? <Button kind="secondary" label="Add photos" onPress={addPhotos} loading={busy} /> : null}
+        <AppText variant="caption" style={{ marginTop: 8 }}>Your first photo is your main photo. It is also the one your verification selfie is matched against.</AppText>
       </Card>
     </Screen>
   );
@@ -164,5 +190,7 @@ const st = StyleSheet.create({
   badge: { position: 'absolute', left: 4, bottom: 4, backgroundColor: 'rgba(0,0,0,0.65)', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   x: { position: 'absolute', top: 4, right: 4, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
+  star: { position: 'absolute', top: 32, left: 4, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
+  add: { alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.surfaceRaised, backgroundColor: 'transparent' },
   eye: { position: 'absolute', top: 4, left: 4, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
 });

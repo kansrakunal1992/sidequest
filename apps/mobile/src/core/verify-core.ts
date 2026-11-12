@@ -58,3 +58,20 @@ export const POLL_MS = 4000;
 export const POLL_MAX = 45;
 
 export const CONSENT_TEXT = 'We will open a secure page run by Didit, our verification provider. You take a live selfie there. They compare it with your main profile photo and tell us only whether it matched. We never receive your selfie, and we ask them to delete it straight away. This is optional, and you can say no.';
+
+/** Can the person start right now? The check compares a live selfie with their first APPROVED photo, so a photo still in review blocks it.
+ *  'unknown' means we could not read the photos: let them try and let the server say. */
+export type Readiness = 'unknown' | 'no_photo' | 'in_review' | 'ready';
+export function readiness(photos: { status: string }[] | null): Readiness {
+  if (photos === null) return 'unknown';
+  if (!photos.length) return 'no_photo';
+  return photos.some((p) => p.status === 'approved') ? 'ready' : 'in_review';
+}
+export function readinessText(r: Readiness): string | null {
+  switch (r) {
+    case 'no_photo': return 'Add a clear photo of your face first. The check compares your selfie with it.';
+    case 'in_review': return 'Your photo is still being reviewed. You can verify as soon as it is approved. We will not make you wait for nothing, so check back soon.';
+    default: return null;
+  }
+}
+export const VERIFY_STEPS = ['Your main photo', 'A quick live selfie', 'Your free badge'] as const;
